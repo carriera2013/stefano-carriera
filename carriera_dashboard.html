@@ -1,9 +1,4 @@
-
-
- 
-
-   
- <!DOCTYPE html><html lang="it"><head>
+<!DOCTYPE html><html lang="it"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,6 +8,8 @@
   <meta name="theme-color" content="#080e14">
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjgwIiBmaWxsPSIjMDgwZTE0Ii8+PHBhdGggZD0iTTI1NiA4MCBMNDIwIDE0MCBMNDIwIDI4MCBRNDIwIDM4MCAyNTYgNDQwIFE5MiAzODAgOTIgMjgwIEw5MiAxNDAgWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2RlOGE4IiBzdHJva2Utd2lkdGg9IjE4Ii8+PHRleHQgeD0iMjU2IiB5PSIzMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCBCbGFjayxzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4MCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iIzdkZThhOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VjwvdGV4dD48L3N2Zz4=">
   <title>Stefano Carriera</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;background:#080e14;color:#e0e8f0;overflow-x:hidden}#root{min-height:100%}body{padding-top:env(safe-area-inset-top);padding-right:env(safe-area-inset-right);padding-left:env(safe-area-inset-left);padding-bottom:env(safe-area-inset-bottom)}</style>
 </head><body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#4ac8ff;font-size:18px;letter-spacing:2px">CARICAMENTO...</div></div>
@@ -338,7 +335,53 @@ try{
 var ErrorBoundary=(function(){function EB(p){React.Component.call(this,p);this.state={error:null};}EB.prototype=Object.create(React.Component.prototype);EB.prototype.constructor=EB;EB.getDerivedStateFromError=function(e){return{error:e};};EB.prototype.componentDidCatch=function(e,info){var el=document.getElementById('root');if(el)el.innerHTML='<div style="padding:24px;color:#e74c3c;font-family:monospace;background:#0d1e30;min-height:100vh;font-size:12px"><h2 style="color:#f39c12">Errore</h2><pre style="white-space:pre-wrap">'+String(e)+'\n'+(e.stack||'')+'</pre></div>';};EB.prototype.render=function(){if(this.state.error)return null;return this.props.children;};return EB;})();
 var useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback,useMemo=React.useMemo;
 var BarChart=Recharts.BarChart,Bar=Recharts.Bar,LineChart=Recharts.LineChart,Line=Recharts.Line,XAxis=Recharts.XAxis,YAxis=Recharts.YAxis,CartesianGrid=Recharts.CartesianGrid,Tooltip=Recharts.Tooltip,ResponsiveContainer=Recharts.ResponsiveContainer,Cell=Recharts.Cell,ReferenceLine=Recharts.ReferenceLine,Legend=Recharts.Legend;
-var LS_KEY='stefano_carriera_v1';function loadData(){try{var s=localStorage.getItem(LS_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}var _saveTimeout=null;function saveData(data){if(_saveTimeout)clearTimeout(_saveTimeout);_saveTimeout=setTimeout(function(){try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}},800);}
+
+var LS_KEY='stefano_carriera_v1';
+var _db=null, _fbReady=false, _saveTimeout=null;
+
+function initFirebase(){
+  try{
+    if(typeof firebase==='undefined'){return;}
+    if(firebase.apps && firebase.apps.length===0){
+      firebase.initializeApp({
+        apiKey:"AIzaSyCgSkHRAy0JSZhej3EGKiJG8vVdoRr62bk",
+        authDomain:"stefano-carriera.firebaseapp.com",
+        projectId:"stefano-carriera",
+        storageBucket:"stefano-carriera.firebasestorage.app",
+        messagingSenderId:"1055351558743",
+        appId:"1:1055351558743:web:192ca905cc684c4bb24912"
+      });
+    }
+    _db=firebase.firestore();
+    _fbReady=true;
+  }catch(e){console.warn('Firebase:',e);}
+}
+
+function loadData(){
+  var lsData=null;
+  try{var s=localStorage.getItem(LS_KEY);if(s)lsData=JSON.parse(s);}catch(e){}
+  if(!_fbReady) return Promise.resolve(lsData);
+  return _db.collection('vogogna').doc('main').get()
+    .then(function(doc){
+      if(doc.exists){
+        var d=doc.data();
+        try{localStorage.setItem(LS_KEY,JSON.stringify(d));}catch(e){}
+        return d;
+      }
+      return lsData;
+    })
+    .catch(function(){return lsData;});
+}
+
+function saveData(data){
+  try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}
+  if(!_fbReady) return;
+  if(_saveTimeout) clearTimeout(_saveTimeout);
+  _saveTimeout=setTimeout(function(){
+    _db.collection('vogogna').doc('main').set(data)
+      .catch(function(e){console.warn('FB save:',e);});
+  },1500);
+}
 
 }catch(e){document.getElementById('root').innerHTML='<div style="padding:20px;color:#e74c3c;font-family:monospace;background:#0d1e30;min-height:100vh"><h2 style="color:#f39c12">Errore:</h2><pre>'+String(e)+'\n'+(e.stack||'')+'</pre></div>';throw e;}
 try{
@@ -985,10 +1028,39 @@ function App(props) {
 
 }catch(e){document.getElementById('root').innerHTML='<div style="padding:20px;color:#e74c3c;font-family:monospace;background:#0d1e30;min-height:100vh"><h2 style="color:#f39c12">Errore:</h2><pre>'+String(e)+'\n'+(e.stack||'')+'</pre></div>';throw e;}
 try{
-var _saved=loadData();var _root=ReactDOM.createRoot(document.getElementById('root'));_root.render(React.createElement(ErrorBoundary,null,React.createElement(App,{_initialData:_saved})));
+
+initFirebase();
+var _root=ReactDOM.createRoot(document.getElementById('root'));
+_root.render(React.createElement('div',{
+  style:{display:'flex',alignItems:'center',justifyContent:'center',
+         height:'100vh',flexDirection:'column',gap:12,
+         background:'#080e14',color:'#4ac8ff',fontFamily:'sans-serif'}
+},
+  React.createElement('div',{style:{fontSize:18,letterSpacing:2}},'CARICAMENTO...'),
+  React.createElement('div',{style:{fontSize:11,color:'#3a7a9a',letterSpacing:1}},'Sincronizzazione...')
+));
+
+var _booted=false;
+var _bootTimer=setTimeout(function(){
+  if(_booted) return;
+  _booted=true;
+  var lsData=null;
+  try{var s=localStorage.getItem('stefano_carriera_v1');if(s)lsData=JSON.parse(s);}catch(e){}
+  _root.render(React.createElement(ErrorBoundary,null,React.createElement(App,{_initialData:lsData})));
+},4000);
+
+loadData().then(function(saved){
+  if(_booted) return;
+  _booted=true;
+  clearTimeout(_bootTimer);
+  _root.render(React.createElement(ErrorBoundary,null,React.createElement(App,{_initialData:saved})));
+}).catch(function(){
+  if(_booted) return;
+  _booted=true;
+  clearTimeout(_bootTimer);
+  _root.render(React.createElement(ErrorBoundary,null,React.createElement(App,{_initialData:null})));
+});
 
 }catch(e){document.getElementById('root').innerHTML='<div style="padding:20px;color:#e74c3c;font-family:monospace;background:#0d1e30;min-height:100vh"><h2 style="color:#f39c12">Errore:</h2><pre>'+String(e)+'\n'+(e.stack||'')+'</pre></div>';}
   </script>
 </body></html>
- 
-   
