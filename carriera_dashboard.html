@@ -409,13 +409,13 @@ const buildCareer = (matches, teamNome) => {
   ];
 };
 const MATCHES_INIT = [
-  { id: 1, data: "01/11/2025", ora: "10:30", avversario: "Cannobiese", squadra: "Academy Vogogna", luogo: "Cannobbio", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 2, subiti: 5, golS: 0, assistS: 1, presenze: true, note: "Domenica Mattina", q: ["1-0", "1-0", "0-4", "0-1"], mvpNome: "", mvpVoto: "" },
   { squadra: "Academy Vogogna", id: 2, data: "04/10/2025", ora: "14:30", avversario: "Crevolese A.S.D", luogo: "Vogogna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Casa", fatti: 4, subiti: 7, golS: 1, assistS: 2, presenze: true, note: "Partita con troppe disattenzioni", q: ["1-3", "1-3", "0-1", "2-0"], mvpNome: "", mvpVoto: "" },
   { squadra: "Academy Vogogna", id: 3, data: "11/10/2025", ora: "14:00", avversario: "Bagnella", luogo: "Bagnella", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 7, subiti: 1, golS: 1, assistS: 4, presenze: true, note: "Bene il gioco", q: ["1-0", "0-0", "3-1", "3-0"], mvpNome: "", mvpVoto: "" },
-  { squadra: "Academy Vogogna", id: 4, data: "15/11/2025", ora: "14:30", avversario: "Voluntas Suna", luogo: "Suna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 0, subiti: 1, golS: 0, assistS: 0, presenze: true, note: "Campo allentato dalla pioggia", q: ["0-0", "0-0", "0-0", "0-1"], mvpNome: "", mvpVoto: "" },
   { squadra: "Academy Vogogna", id: 5, data: "18/10/2025", ora: "14:00", avversario: "Juve Domo", luogo: "Domodossola", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 11, subiti: 1, golS: 1, assistS: 0, presenze: true, note: "Passo indietro sul piano del gioco e della personalit\xE0", q: ["2-1", "3-0", "1-0", "5-0"], mvpNome: "", mvpVoto: "" },
-  { squadra: "Academy Vogogna", id: 6, data: "22/11/2025", ora: "14:30", avversario: "Gravellona", luogo: "Vogogna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Casa", fatti: 2, subiti: 4, golS: 0, assistS: 0, presenze: true, note: "Stefano ha giocato solo il primo tempo ( Cresima Costanza )", q: ["1-0", "0-3", "0-0", "1-1"], mvpNome: "", mvpVoto: "" },
   { squadra: "Academy Vogogna", id: 7, data: "25/10/2025", ora: "14:30", avversario: "Fomarco", luogo: "Vogogna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Casa", fatti: 2, subiti: 1, golS: 0, assistS: 1, presenze: true, note: "Ancora poco \u201Csquadra\u201D tante azioni slegate", q: ["1-0", "0-0", "1-0", "0-1"], mvpNome: "", mvpVoto: "" },
+  { id: 1, data: "01/11/2025", ora: "10:30", avversario: "Cannobiese", squadra: "Academy Vogogna", luogo: "Cannobbio", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 2, subiti: 5, golS: 0, assistS: 1, presenze: true, note: "Domenica Mattina", q: ["1-0", "1-0", "0-4", "0-1"], mvpNome: "", mvpVoto: "" },
+  { squadra: "Academy Vogogna", id: 4, data: "15/11/2025", ora: "14:30", avversario: "Voluntas Suna", luogo: "Suna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 0, subiti: 1, golS: 0, assistS: 0, presenze: true, note: "Campo allentato dalla pioggia", q: ["0-0", "0-0", "0-0", "0-1"], mvpNome: "", mvpVoto: "" },
+  { squadra: "Academy Vogogna", id: 6, data: "22/11/2025", ora: "14:30", avversario: "Gravellona", luogo: "Vogogna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Casa", fatti: 2, subiti: 4, golS: 0, assistS: 0, presenze: true, note: "Stefano ha giocato solo il primo tempo ( Cresima Costanza )", q: ["1-0", "0-3", "0-0", "1-1"], mvpNome: "", mvpVoto: "" },
   { squadra: "Academy Vogogna", id: 8, data: "29/11/2025", ora: "15:45", avversario: "Omegna", luogo: "Omegna", campo: "", categoria: "Esordienti 2\xB0 Anno", tipo: "Campionato", sede: "Fuori", fatti: 9, subiti: 2, golS: 2, assistS: 4, presenze: true, note: "Tante giocate da fuori area", q: ["2-0", "1-0", "5-1", "1-1"], mvpNome: "", mvpVoto: "" }
 ];
 const ALL_MATCHES = [
@@ -688,7 +688,14 @@ function App(props) {
   const thm = isDark ? THEMES.dark : THEMES.light;
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   useEffect(function() { function _r(){setIsMobile(window.innerWidth<768);} window.addEventListener("resize",_r); return function(){window.removeEventListener("resize",_r);}; }, []);
-  const [matches, setMatches] = useState(_ini && _ini.matches || MATCHES_INIT);
+  const [matches, setMatches] = useState((_ini && _ini.matches || MATCHES_INIT).slice().sort((a, b) => {
+    const _d = (s) => {
+      if (!s) return 0;
+      const [d, m, y] = s.split("/");
+      return +y * 1e4 + +m * 100 + +d;
+    };
+    return _d(a.data) - _d(b.data);
+  }));
   const [allMatches, setAllMatches] = useState(_ini && _ini.allMatches || ALL_MATCHES);
   const [tab, setTab] = useState("dashboard");
   const [drill, setDrill] = useState(null);
