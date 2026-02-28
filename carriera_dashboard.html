@@ -347,26 +347,34 @@ function mapLink(indirizzo) {
 }
 function NavButtons({ indirizzo, style }) {
   if (!indirizzo) return null;
+  const [open, setOpen] = React.useState(false);
   const enc = encodeURIComponent(indirizzo);
-  return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, ...style } }, /* @__PURE__ */ React.createElement(
+  const apps = [
+    { lbl: "Apple Maps", url: `https://maps.apple.com/?daddr=${enc}&dirflg=d`, c: "#4ac8ff", bg: "rgba(74,200,255,.12)", b: "rgba(74,200,255,.3)" },
+    { lbl: "Google Maps", url: `https://www.google.com/maps/dir/?api=1&destination=${enc}`, c: "#7de8a8", bg: "rgba(125,232,168,.1)", b: "rgba(125,232,168,.3)" },
+    { lbl: "Waze", url: `https://waze.com/ul?q=${enc}&navigate=yes`, c: "#a29bfe", bg: "rgba(162,155,254,.1)", b: "rgba(162,155,254,.3)" }
+  ];
+  return /* @__PURE__ */ React.createElement("div", { style: { position: "relative", display: "inline-block", ...style } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => setOpen((o) => !o),
+      style: { padding: "6px 12px", borderRadius: 6, background: "rgba(74,200,255,.12)", border: "1px solid rgba(74,200,255,.3)", color: "#4ac8ff", fontSize: 11, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, cursor: "pointer", textTransform: "uppercase", whiteSpace: "nowrap" }
+    },
+    "\u{1F5FA} Naviga ",
+    open ? "\u25B2" : "\u25BC"
+  ), open && /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 200, background: "#f0f4f8", border: "1px solid rgba(74,200,255,.3)", borderRadius: 8, padding: 4, display: "flex", flexDirection: "column", gap: 3, minWidth: 150, boxShadow: "0 4px 16px rgba(0,0,0,.15)" } }, apps.map((a) => /* @__PURE__ */ React.createElement(
     "a",
     {
-      href: `https://maps.apple.com/?daddr=${enc}&dirflg=d`,
+      key: a.lbl,
+      href: a.url,
       target: "_blank",
       rel: "noopener noreferrer",
-      style: { padding: "6px 10px", borderRadius: 6, background: "rgba(74,200,255,.12)", border: "1px solid rgba(74,200,255,.3)", color: "#4ac8ff", fontSize: 11, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, textDecoration: "none", textTransform: "uppercase", whiteSpace: "nowrap" }
+      onClick: () => setOpen(false),
+      style: { padding: "7px 12px", borderRadius: 5, background: a.bg, border: `1px solid ${a.b}`, color: a.c, fontSize: 12, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, textDecoration: "none", textTransform: "uppercase", whiteSpace: "nowrap", display: "block" }
     },
-    "\u{1F5FA} Apple Maps"
-  ), /* @__PURE__ */ React.createElement(
-    "a",
-    {
-      href: `https://www.google.com/maps/dir/?api=1&destination=${enc}`,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      style: { padding: "6px 10px", borderRadius: 6, background: "rgba(125,232,168,.1)", border: "1px solid rgba(125,232,168,.3)", color: "#7de8a8", fontSize: 11, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, textDecoration: "none", textTransform: "uppercase", whiteSpace: "nowrap" }
-    },
-    "\u{1F5FA} Google Maps"
-  ));
+    "\u{1F5FA} ",
+    a.lbl
+  ))));
 }
 function stagioneDa(dataStr) {
   if (!dataStr) return "";
@@ -690,6 +698,7 @@ function App(props) {
   const [editIsUpcoming, setEditIsUpcoming] = useState(false);
   const [newM, setNewM] = useState({ data: "", ora: "", avversario: "", categoria: "Esordienti 2 Anno", sede: "Casa", campo: "", tipo: "Campionato", fatti: 0, subiti: 0, golS: 0, assistS: 0, note: "", q: ["", "", "", ""], presenze: true, mvpNome: "", mvpVoto: "" });
   const [calFil, setCalFil] = useState("Tutti");
+  const [showAddUpcoming, setShowAddUpcoming] = useState(false);
   const [stoFil, setStoFil] = useState("Tutte");
   const [stoTipo, setStoTipo] = useState("Tutti");
   const [stoStef, setStoStef] = useState(false);
@@ -698,7 +707,10 @@ function App(props) {
   const [showTeamEdit, setShowTeamEdit] = useState(false);
   const [teamDraft, setTeamDraft] = useState(TEAM_DEFAULT);
   const [teamHistory, setTeamHistory] = useState([]);
-  const [upcoming, setUpcoming] = useState(_ini && _ini.upcoming || UPCOMING);
+  const [upcoming, setUpcoming] = useState((() => {
+    const src = _ini && _ini.upcoming || UPCOMING;
+    return src.map((u, i) => u._uid ? u : { ...u, _uid: "up_init_" + i + "_" + Math.random().toString(36).slice(2) });
+  })());
   const [fillM, setFillM] = useState(null);
   const [convocazioni, setConvocazioni] = useState(_ini && _ini.convocazioni || []);
   useEffect(function() {
@@ -757,17 +769,38 @@ function App(props) {
   const toggle = (id) => setDrill((p) => p === id ? null : id);
   const addMatch = () => {
     const nm = { ...newM, id: Date.now(), fatti: +newM.fatti, subiti: +newM.subiti, golS: +newM.golS, assistS: +newM.assistS, squadra: team.nome, squadraLogo: team.logo };
-    setMatches((p) => [...p, nm]);
+    setMatches((p) => [...p, nm].sort((a, b) => {
+      const _d = (s) => {
+        if (!s) return 0;
+        const [d, m, y] = s.split("/");
+        return +y * 1e4 + +m * 100 + +d;
+      };
+      return _d(a.data) - _d(b.data);
+    }));
     setNewM({ data: "", ora: "", avversario: "", categoria: "Esordienti 2 Anno", sede: "Casa", campo: "", tipo: "Campionato", fatti: 0, subiti: 0, golS: 0, assistS: 0, note: "", q: ["", "", "", ""], presenze: true, mvpNome: "", mvpVoto: "" });
     setShowAdd(false);
   };
   const saveEdit = () => {
-    if (editIsUpcoming && editM._upIdx != null) {
-      setUpcoming((prev) => prev.map((u, i) => i === editM._upIdx ? { ...editM } : u));
+    if (editIsUpcoming && editM._uid != null) {
+      setUpcoming((prev) => prev.map((u) => u._uid === editM._uid ? { ...editM } : u).sort((a, b) => {
+        const _d = (s) => {
+          if (!s) return 0;
+          const [d, m, y] = s.split("/");
+          return +y * 1e4 + +m * 100 + +d;
+        };
+        return _d(a.data) - _d(b.data);
+      }));
     } else if (editIsStorico) {
       setAllMatches((prev) => prev.map((m) => m.id === editM.id ? { ...editM } : m));
     } else {
-      setMatches((prev) => prev.map((m) => m.id === editM.id ? { ...editM } : m));
+      setMatches((prev) => prev.map((m) => m.id === editM.id ? { ...editM } : m).sort((a, b) => {
+        const _d = (s) => {
+          if (!s) return 0;
+          const [d, m, y] = s.split("/");
+          return +y * 1e4 + +m * 100 + +d;
+        };
+        return _d(a.data) - _d(b.data);
+      }));
     }
     setEditM(null);
     setEditIsStorico(false);
@@ -775,7 +808,14 @@ function App(props) {
   };
   const barAll = pl.map((m) => ({ n: m.avversario.slice(0, 8), F: m.fatti, S: m.subiti }));
   const barStef = matches.map((m) => ({ n: m.avversario.slice(0, 8), G: m.golS, A: m.assistS }));
-  const filtUp = calFil === "Tutti" ? upcoming : upcoming.filter((u) => u.tipo === calFil);
+  const filtUp = (calFil === "Tutti" ? upcoming : upcoming.filter((u) => u.tipo === calFil)).sort((a, b) => {
+    const _d = (s) => {
+      if (!s) return 0;
+      const [d, m, y] = s.split("/");
+      return +y * 1e4 + +m * 100 + +d;
+    };
+    return _d(a.data) - _d(b.data);
+  });
   let cG = 0, cA = 0;
   const cumData = CAREER_BY_SEASON.map((x) => {
     cG += x.g;
@@ -910,24 +950,22 @@ function App(props) {
   })(), tab === "calendario" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 3, color: thm.navActive } }, "Prossime Partite"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 7 } }, ["Tutti", "Campionato", "Torneo"].map((f) => {
     const on = calFil === f, isTorneo = f === "Torneo";
     return /* @__PURE__ */ React.createElement("button", { key: f, onClick: () => setCalFil(f), style: { padding: "6px 13px", borderRadius: 6, border: "1px solid " + (on ? isTorneo ? "rgba(243,156,18,.3)" : "rgba(125,232,168,.3)" : thm.border), cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", background: on ? isTorneo ? "rgba(243,156,18,.15)" : "rgba(125,232,168,.15)" : thm.surface, color: on ? isTorneo ? "#f39c12" : "#7de8a8" : thm.textMuted } }, f);
-  }))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8 } }, filtUp.map((u, ui) => {
-    const done = u.fatti != null && u.subiti != null && u.risultato;
-    return /* @__PURE__ */ React.createElement("div", { key: ui, style: { background: thm.surface, border: "1px solid " + (done ? "rgba(125,232,168,.3)" : thm.border), borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, transition: "border-color .2s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 17, color: done ? "#7de8a8" : "#4ac8ff", minWidth: 50 } }, u.data.slice(0, 5)), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 3, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 600, fontSize: 14 } }, u.avversario), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, letterSpacing: 2, textTransform: "uppercase", padding: "2px 7px", borderRadius: 3, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 600, ...u.tipo === "Campionato" ? { background: "rgba(125,232,168,.1)", color: "#7de8a8", border: "1px solid rgba(125,232,168,.2)" } : { background: "rgba(243,156,18,.1)", color: "#f39c12", border: "1px solid rgba(243,156,18,.2)" } } }, u.tipo), done && /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "#7de8a8" } }, u.fatti, "\u2013", u.subiti)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textMuted, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" } }, u.campo ? /* @__PURE__ */ React.createElement(
-      "a",
-      {
-        href: mapLink(u.campo),
-        target: "_blank",
-        rel: "noopener noreferrer",
-        style: { color: "#4ac8ff", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 },
-        onMouseEnter: (e) => e.currentTarget.style.opacity = 0.7,
-        onMouseLeave: (e) => e.currentTarget.style.opacity = 1
+  }))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      onClick: () => {
+        setNewM({ data: "", ora: "", avversario: "", categoria: "Esordienti 2 Anno", sede: "Casa", campo: "", tipo: "Campionato", fatti: null, subiti: null, golS: 0, assistS: 0, note: "", q: ["", "", "", ""], presenze: false, mvpNome: "", mvpVoto: "" });
+        setShowAddUpcoming(true);
       },
-      "\u{1F4CD} ",
-      u.campo
-    ) : /* @__PURE__ */ React.createElement("span", null, "\u2014"), u.ora && /* @__PURE__ */ React.createElement("span", { style: { color: thm.textDim } }, "\xB7 ", u.ora))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", padding: "2px 6px", borderRadius: 3, background: u.sede === "Casa" ? "rgba(74,200,255,.1)" : "rgba(128,128,128,.1)", color: u.sede === "Casa" ? "#4ac8ff" : thm.textMuted } }, u.sede), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexShrink: 0, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
+      style: { padding: "8px 24px", background: "rgba(74,200,255,.1)", border: "1px solid rgba(74,200,255,.35)", borderRadius: 8, color: "#4ac8ff", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }
+    },
+    "\uFF0B Aggiungi Prossima Partita"
+  )), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8 } }, filtUp.map((u, ui) => {
+    const done = u.fatti != null && u.subiti != null && u.risultato;
+    return /* @__PURE__ */ React.createElement("div", { key: ui, style: { background: thm.surface, border: "1px solid " + (done ? "rgba(125,232,168,.3)" : thm.border), borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 14, transition: "border-color .2s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 17, color: done ? "#7de8a8" : "#4ac8ff", minWidth: 50 } }, u.data.slice(0, 5)), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 3, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 600, fontSize: 14 } }, u.avversario), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, letterSpacing: 2, textTransform: "uppercase", padding: "2px 7px", borderRadius: 3, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 600, ...u.tipo === "Campionato" ? { background: "rgba(125,232,168,.1)", color: "#7de8a8", border: "1px solid rgba(125,232,168,.2)" } : { background: "rgba(243,156,18,.1)", color: "#f39c12", border: "1px solid rgba(243,156,18,.2)" } } }, u.tipo), done && /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "#7de8a8" } }, u.fatti, "\u2013", u.subiti)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textMuted, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" } }, u.campo ? /* @__PURE__ */ React.createElement(NavButtons, { indirizzo: u.campo }) : /* @__PURE__ */ React.createElement("span", null, "\u2014"), u.ora && /* @__PURE__ */ React.createElement("span", { style: { color: thm.textDim } }, "\xB7 ", u.ora))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", padding: "2px 6px", borderRadius: 3, background: u.sede === "Casa" ? "rgba(74,200,255,.1)" : "rgba(128,128,128,.1)", color: u.sede === "Casa" ? "#4ac8ff" : thm.textMuted } }, u.sede), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexShrink: 0, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setFillM({ ...u, _upIdx: ui, fatti: u.fatti != null ? u.fatti : 0, subiti: u.subiti != null ? u.subiti : 0, golS: u.golS != null ? u.golS : 0, assistS: u.assistS != null ? u.assistS : 0, presenze: u.presenze != null ? u.presenze : true, q: u.q || ["", "", "", ""], note: u.noteRis || "" }),
+        onClick: () => setFillM({ ...u, _uid: u._uid, fatti: u.fatti != null ? u.fatti : 0, subiti: u.subiti != null ? u.subiti : 0, golS: u.golS != null ? u.golS : 0, assistS: u.assistS != null ? u.assistS : 0, presenze: u.presenze != null ? u.presenze : true, q: u.q || ["", "", "", ""], note: u.noteRis || "" }),
         style: { padding: "6px 12px", borderRadius: 7, border: "1px solid " + (done ? "rgba(125,232,168,.3)" : "rgba(74,200,255,.3)"), background: done ? "rgba(125,232,168,.07)" : "rgba(74,200,255,.07)", color: done ? "#7de8a8" : "#4ac8ff", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", whiteSpace: "nowrap" }
       },
       done ? "Risultato" : "Risultato"
@@ -935,7 +973,7 @@ function App(props) {
       "button",
       {
         onClick: () => {
-          setEditM({ ...u, _upIdx: ui, campo: u.campo || "" });
+          setEditM({ ...u, _uid: u._uid, campo: u.campo || "" });
           setEditIsStorico(false);
           setEditIsUpcoming(true);
         },
@@ -948,7 +986,7 @@ function App(props) {
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setUpcoming((prev) => prev.filter((_, i) => i !== ui)),
+        onClick: () => setUpcoming((prev) => prev.filter((x) => x._uid !== u._uid)),
         title: "Elimina partita",
         style: { background: "none", border: "none", cursor: "pointer", color: "#e74c3c", opacity: 0.55, fontSize: 16, padding: "4px 5px", transition: "opacity .2s" },
         onMouseEnter: (e) => e.currentTarget.style.opacity = 1,
@@ -966,7 +1004,7 @@ function App(props) {
       return +yy * 1e4 + +mm * 100 + +dd;
     };
     return td(b.data) - td(a.data);
-  }).map((c, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: thm.cardBg, border: "1px solid rgba(255,215,0,.2)", borderRadius: 10, padding: "10px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "#4ac8ff", letterSpacing: 1 } }, c.data), c.ora && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: thm.textMuted } }, "\u23F1 ", c.ora), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase", padding: "3px 9px", borderRadius: 4, background: "rgba(255,215,0,.12)", border: "1px solid rgba(255,215,0,.3)", color: "#ffd700", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700 } }, c.selezione)), c.luogo && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textMuted, marginBottom: c.note ? 4 : 0 } }, c.campo ? /* @__PURE__ */ React.createElement("a", { href: mapLink(c.campo), target: "_blank", rel: "noopener noreferrer", style: { color: "#4ac8ff", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 } }, "\u{1F4CD} ", c.luogo) : /* @__PURE__ */ React.createElement("span", null, "\u{1F4CD} ", c.luogo)), c.note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textDim, fontStyle: "italic", marginTop: 4 } }, c.note)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
+  }).map((c, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { background: thm.cardBg, border: "1px solid rgba(255,215,0,.2)", borderRadius: 10, padding: "10px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "#4ac8ff", letterSpacing: 1 } }, c.data), c.ora && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: thm.textMuted } }, "\u23F1 ", c.ora), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase", padding: "3px 9px", borderRadius: 4, background: "rgba(255,215,0,.12)", border: "1px solid rgba(255,215,0,.3)", color: "#ffd700", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700 } }, c.selezione)), c.luogo && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textMuted, marginBottom: c.note ? 4 : 0 } }, c.campo ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(NavButtons, { indirizzo: c.campo }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#4ac8ff", marginTop: 3 } }, "\u{1F4CD} ", c.luogo)) : /* @__PURE__ */ React.createElement("span", null, "\u{1F4CD} ", c.luogo)), c.note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textDim, fontStyle: "italic", marginTop: 4 } }, c.note)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setEditConv({ ...c, _idx: i });
     setShowAddConv("edit");
   }, style: { background: "none", border: "none", cursor: "pointer", color: "#7de8a8", opacity: 0.5, fontSize: 15, padding: 4, transition: "opacity .2s" }, onMouseEnter: (e) => e.currentTarget.style.opacity = 1, onMouseLeave: (e) => e.currentTarget.style.opacity = 0.5 }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConvocazioni((p) => p.filter((_, j) => j !== i)), style: { background: "none", border: "none", cursor: "pointer", color: "#e74c3c", opacity: 0.5, fontSize: 15, padding: 4, transition: "opacity .2s" }, onMouseEnter: (e) => e.currentTarget.style.opacity = 1, onMouseLeave: (e) => e.currentTarget.style.opacity = 0.5 }, "\u{1F5D1}"))))))), showAddConv && (() => {
@@ -987,7 +1025,30 @@ function App(props) {
       setShowAddConv(false);
       setEditConv(null);
     }, style: { padding: "8px 18px", borderRadius: 7, border: `1px solid ${thm.border}`, background: "transparent", color: thm.textMuted, cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, letterSpacing: 2, textTransform: "uppercase" } }, "Annulla"), /* @__PURE__ */ React.createElement("button", { onClick: onSv, style: { padding: "8px 18px", borderRadius: 7, border: "none", background: "#ffd700", color: "#080e14", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" } }, "Salva"))));
-  })(), showAdd && /* @__PURE__ */ React.createElement(ModalPartita, { data: newM, setData: setNewM, onSave: addMatch, onCancel: () => setShowAdd(false), title: "Aggiungi Partita", thm, isStorico: false }), editM && /* @__PURE__ */ React.createElement(ModalPartita, { data: editM, setData: setEditM, onSave: saveEdit, onCancel: () => {
+  })(), showAdd && /* @__PURE__ */ React.createElement(ModalPartita, { data: newM, setData: setNewM, onSave: addMatch, onCancel: () => setShowAdd(false), title: "Aggiungi Partita", thm, isStorico: false }), showAddUpcoming && /* @__PURE__ */ React.createElement(
+    ModalPartita,
+    {
+      data: newM,
+      setData: setNewM,
+      onSave: () => {
+        const nu = { ...newM, id: "up_" + Date.now(), _uid: "up_" + Date.now() + "_" + Math.random().toString(36).slice(2), tipo: newM.tipo || "Campionato" };
+        setUpcoming((p) => [...p, nu].sort((a, b) => {
+          const ds = (s) => {
+            if (!s) return 0;
+            const [d, m, y] = s.split("/");
+            return +y * 1e4 + +m * 100 + +d;
+          };
+          return ds(a.data) - ds(b.data);
+        }));
+        setNewM({ data: "", ora: "", avversario: "", categoria: "Esordienti 2 Anno", sede: "Casa", campo: "", tipo: "Campionato", fatti: null, subiti: null, golS: 0, assistS: 0, note: "", q: ["", "", "", ""], presenze: false, mvpNome: "", mvpVoto: "" });
+        setShowAddUpcoming(false);
+      },
+      onCancel: () => setShowAddUpcoming(false),
+      title: "Aggiungi Prossima Partita",
+      thm,
+      isStorico: false
+    }
+  ), editM && /* @__PURE__ */ React.createElement(ModalPartita, { data: editM, setData: setEditM, onSave: saveEdit, onCancel: () => {
     setEditM(null);
     setEditIsStorico(false);
     setEditIsUpcoming(false);
@@ -1002,12 +1063,26 @@ function App(props) {
       onCancel: () => setFillM(null),
       onSave: () => {
         const sv = { ...fillM, fatti: +fillM.fatti, subiti: +fillM.subiti, golS: +fillM.golS, assistS: +fillM.assistS, risultato: true, noteRis: fillM.note };
-        setUpcoming((prev) => prev.map((u, i) => i === fillM._upIdx ? { ...u, ...sv } : u));
-        const mid = 2e4 + fillM._upIdx;
+        setUpcoming((prev) => prev.map((u) => u._uid === fillM._uid ? { ...u, ...sv } : u));
+        const mid = "mid_" + fillM._uid;
         setMatches((prev) => {
           const ex = prev.find((m) => m.id === mid);
-          if (ex) return prev.map((m) => m.id === mid ? { ...sv, id: mid } : m);
-          return [...prev, { ...sv, id: mid }];
+          if (ex) return prev.map((m) => m.id === mid ? { ...sv, id: mid } : m).sort((a, b) => {
+            const _d = (s) => {
+              if (!s) return 0;
+              const [d, m, y] = s.split("/");
+              return +y * 1e4 + +m * 100 + +d;
+            };
+            return _d(a.data) - _d(b.data);
+          });
+          return [...prev, { ...sv, id: mid }].sort((a, b) => {
+            const _d = (s) => {
+              if (!s) return 0;
+              const [d, m, y] = s.split("/");
+              return +y * 1e4 + +m * 100 + +d;
+            };
+            return _d(a.data) - _d(b.data);
+          });
         });
         setFillM(null);
       }
@@ -1027,7 +1102,7 @@ function App(props) {
     }
     setTeam({ ...teamDraft });
     setShowTeamEdit(false);
-  }, style: { padding: "9px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#4ac8ff,#7de8a8)", color: "#080e14", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" } }, "\u2713 Salva Squadra")))), isMobile && /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1e3, background: isDark ? "rgba(8,14,20,.97)" : "rgba(240,248,255,.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${thm.border}`, display: "flex", paddingBottom: "env(safe-area-inset-bottom)" } }, [
+  }, style: { padding: "9px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#4ac8ff,#7de8a8)", color: "#080e14", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" } }, "\u2713 Salva Squadra")))), isMobile && /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1e3, background: isDark ? "rgba(8,14,20,.97)" : "rgba(240,248,255,.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${thm.border}`, display: "flex", paddingBottom: "max(env(safe-area-inset-bottom),2px)" } }, [
     { id: "dashboard", icon: "\u{1F4CA}", lbl: "Home" },
     { id: "partite", icon: "\u26BD", lbl: "Partite" },
     { id: "stefano", icon: "\u2B50", lbl: "Stefano" },
@@ -1044,10 +1119,10 @@ function App(props) {
           setTab(t.id);
           setDrill(null);
         },
-        style: { flex: 1, background: "none", border: "none", cursor: "pointer", padding: "8px 2px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, color: active ? thm.navActive : thm.navInactive, transition: "color .2s" }
+        style: { flex: 1, background: "none", border: "none", cursor: "pointer", padding: "3px 2px 2px", display: "flex", flexDirection: "column", alignItems: "center", gap: 0, color: active ? thm.navActive : thm.navInactive, transition: "color .2s" }
       },
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: active ? 22 : 18, transition: "font-size .15s" } }, t.icon),
-      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, letterSpacing: 0.5, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: active ? 700 : 400, textTransform: "uppercase" } }, t.lbl)
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: active ? 18 : 15, transition: "font-size .15s", lineHeight: "1.1" } }, t.icon),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: 7, letterSpacing: 0.3, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: active ? 700 : 400, textTransform: "uppercase", lineHeight: "1.1" } }, t.lbl)
     );
   })));
 }
