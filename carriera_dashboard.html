@@ -721,7 +721,7 @@ function App(props) {
   const [fillM, setFillM] = useState(null);
   const [convocazioni, setConvocazioni] = useState((() => {
     const src = _ini && _ini.convocazioni || [];
-    return src.map((c, i) => c._uid ? c : { ...c, _uid: "conv_" + (c.data || "x").replace(/\//g, "") + i });
+    return src.map((c, i) => c._uid ? c : { ...c, _uid: "conv_" + i + "_" + (c.data || "").replace(/\//g, "") + "_" + (c.selezione || "").slice(0, 4) });
   })());
   useEffect(function() {
     if (typeof saveData === "function") {
@@ -736,7 +736,7 @@ function App(props) {
       if (d.allMatches) setAllMatches(d.allMatches);
       if (d.team) setTeam(d.team);
       if (d.upcoming) setUpcoming(d.upcoming);
-      if (d.convocazioni) setConvocazioni(d.convocazioni.map((c, i) => c._uid ? c : { ...c, _uid: "conv_" + (c.data || "x").replace(/\//g, "") + i }));
+      if (d.convocazioni) setConvocazioni(d.convocazioni.map((c, i) => c._uid ? c : { ...c, _uid: "conv_" + i + "_" + (c.data || "").replace(/\//g, "") + "_" + (c.selezione || "").slice(0, 4) }));
     });
   }, []);
   const [showAddConv, setShowAddConv] = useState(false);
@@ -1015,7 +1015,7 @@ function App(props) {
     };
     return td(b.data) - td(a.data);
   }).map((c, i) => /* @__PURE__ */ React.createElement("div", { key: c._uid || i, style: { background: thm.cardBg, border: "1px solid rgba(255,215,0,.2)", borderRadius: 10, padding: "10px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "#4ac8ff", letterSpacing: 1 } }, c.data), c.ora && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: thm.textMuted } }, "\u23F1 ", c.ora), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase", padding: "3px 9px", borderRadius: 4, background: "rgba(255,215,0,.12)", border: "1px solid rgba(255,215,0,.3)", color: "#ffd700", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700 } }, c.selezione)), c.luogo && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textMuted, marginBottom: c.note ? 4 : 0 } }, c.campo ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(NavButtons, { indirizzo: c.campo }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#4ac8ff", marginTop: 3 } }, "\u{1F4CD} ", c.luogo)) : /* @__PURE__ */ React.createElement("span", null, "\u{1F4CD} ", c.luogo)), c.note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textDim, fontStyle: "italic", marginTop: 4 } }, c.note)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, flexShrink: 0 } }, /* @__PURE__ */ React.createElement("button", { onClick: () => {
-    setEditConv({ ...c, _uid: c._uid });
+    setEditConv({ ...c });
     setShowAddConv("edit");
   }, style: { background: "none", border: "none", cursor: "pointer", color: "#7de8a8", opacity: 0.5, fontSize: 15, padding: 4, transition: "opacity .2s" }, onMouseEnter: (e) => e.currentTarget.style.opacity = 1, onMouseLeave: (e) => e.currentTarget.style.opacity = 0.5 }, "\u270F\uFE0F"), /* @__PURE__ */ React.createElement("button", { onClick: () => setConvocazioni((p) => p.filter((x) => x._uid !== c._uid)), style: { background: "none", border: "none", cursor: "pointer", color: "#e74c3c", opacity: 0.5, fontSize: 15, padding: 4, transition: "opacity .2s" }, onMouseEnter: (e) => e.currentTarget.style.opacity = 1, onMouseLeave: (e) => e.currentTarget.style.opacity = 0.5 }, "\u{1F5D1}"))))))), showAddConv && (() => {
     const dc = showAddConv === "edit" ? editConv : newConv;
@@ -1025,11 +1025,13 @@ function App(props) {
     const fl = { fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: thm.textMuted, marginBottom: 5, display: "block" };
     const onSv = () => {
       const c = { ...dc };
-      if (showAddConv === "edit") setConvocazioni((p) => p.map((x) => x._uid === c._uid ? c : x));
-      else setConvocazioni((p) => {
-        const nu = { ...c, _uid: "conv_" + (c.data || "x").replace(/\//g, "") + p.length };
-        return [...p, nu];
-      });
+      if (showAddConv === "edit") {
+        const targetUid = editConv._uid;
+        setConvocazioni((p) => p.map((x) => x._uid === targetUid ? { ...c, _uid: targetUid } : x));
+      } else {
+        const newUid = "conv_ts_" + Date.now();
+        setConvocazioni((p) => [...p, { ...c, _uid: newUid }]);
+      }
       setShowAddConv(false);
       setEditConv(null);
     };
