@@ -631,6 +631,26 @@ function dateToISO(ddmmyyyy) {
   return p[2] + "-" + p[1].padStart(2,"0") + "-" + p[0].padStart(2,"0");
 }
 
+function tempScale(t) {
+  if (t === undefined || t === null) return null;
+  if (t > 28) return 0;
+  if (t > 22) return 1;
+  if (t > 16) return 2;
+  if (t > 10) return 3;
+  if (t > 4)  return 4;
+  if (t > -2) return 5;
+  return 6;
+}
+var TEMP_SCALE = [
+  {l:"Caldo",r:">28\u00b0C",c:"#e74c3c"},
+  {l:"Caldo",r:"22-28\u00b0C",c:"#f39c12"},
+  {l:"Tiepido",r:"16-22\u00b0C",c:"#f1c40f"},
+  {l:"Fresco",r:"10-16\u00b0C",c:"#7de8a8"},
+  {l:"Freddo",r:"4-10\u00b0C",c:"#4ac8ff"},
+  {l:"Gelo",r:"-2-4\u00b0C",c:"#9b59b6"},
+  {l:"Gelido",r:"<-2\u00b0C",c:"#c8d8ff"}
+];
+
 function TIP({ active, payload, label }) {
   if (!active || !(payload == null ? void 0 : payload.length)) return null;
   return /* @__PURE__ */ React.createElement("div", { style: { background: "#1a2a3a", border: "1px solid rgba(255,255,255,.1)", borderRadius: 8, padding: "8px 12px", fontSize: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { color: "#7de8a8", marginBottom: 4, fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1 } }, label), payload.map((p, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { color: p.fill || p.color || "#fff" } }, p.name, ": ", /* @__PURE__ */ React.createElement("b", null, p.value))));
@@ -765,31 +785,6 @@ function App(props) {
     try{return JSON.parse(localStorage.getItem("wc_vogogna")||"{}");}
     catch(e){return {};}
   });
-  const fetchWeather = React.useCallback(function(dateStr, lat, lon, key) {
-    if (!dateStr || weatherCache[key]) return;
-    var iso = dateToISO(dateStr);
-    if (!iso) return;
-    var url = "https://archive-api.open-meteo.com/v1/archive?latitude="+lat+"&longitude="+lon
-      +"&start_date="+iso+"&end_date="+iso
-      +"&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum"
-      +"&timezone=Europe%2FRome";
-    fetch(url).then(function(r){return r.json();}).then(function(d){
-      if (d && d.daily && d.daily.weathercode) {
-        var w = {
-          code: d.daily.weathercode[0],
-          tmax: d.daily.temperature_2m_max[0],
-          tmin: d.daily.temperature_2m_min[0],
-          rain: d.daily.precipitation_sum[0]
-        };
-        setWeatherCache(function(prev){
-          var next = Object.assign({}, prev);
-          next[key] = w;
-          try{localStorage.setItem("wc_vogogna", JSON.stringify(next));}catch(e){}
-          return next;
-        });
-      }
-    }).catch(function(){});
-  }, [weatherCache]);
   const [expandedNote, setExpandedNote] = useState(null);
   const [weatherPicker, setWeatherPicker] = useState(null);
   const [selItems, setSelItems] = useState({ partite: true, stats: true, convocazioni: false, upcoming: false });
@@ -812,38 +807,7 @@ function App(props) {
     const src = _ini && _ini.upcoming || UPCOMING;
     return src.map((u, i) => u._uid ? u : { ...u, _uid: "up_init_" + i + "_" + Math.random().toString(36).slice(2) });
   })());
-  useEffect(function() {
-    var lat = team.lat || 46.003, lon = team.lon || 8.297;
-    var played = matches.filter(function(m){ return m.presenze && m.data; });
-    // Carica al massimo 10 partite non ancora in cache per non sovraccaricare l'API
-    var toLoad = played.filter(function(m){ return !weatherCache[m._uid||m.data]; }).slice(0, 10);
-    toLoad.forEach(function(m, i) {
-      setTimeout(function() {
-        var key = m._uid || m.data;
-        var iso = dateToISO(m.data);
-        if (!iso) return;
-        var url = "https://archive-api.open-meteo.com/v1/archive?latitude="+lat+"&longitude="+lon
-          +"&start_date="+iso+"&end_date="+iso
-          +"&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum"
-          +"&timezone=Europe%2FRome";
-        fetch(url).then(function(r){return r.json();}).then(function(d){
-          if (d && d.daily && d.daily.weathercode) {
-            setWeatherCache(function(prev){
-              var next = Object.assign({}, prev);
-              next[key] = {
-                code: d.daily.weathercode[0],
-                tmax: d.daily.temperature_2m_max[0],
-                tmin: d.daily.temperature_2m_min[0],
-                rain: d.daily.precipitation_sum[0]
-              };
-              try{localStorage.setItem("wc_vogogna", JSON.stringify(next));}catch(e){}
-              return next;
-            });
-          }
-        }).catch(function(){});
-      }, i * 300); // 300ms tra ogni richiesta
-    });
-  }, [matches]);
+  
   const matchAlert = React.useMemo(function() {
     var today = new Date();
     function fmt(d) { return d.getDate().toString().padStart(2,"0")+"/"+(d.getMonth()+1).toString().padStart(2,"0")+"/"+d.getFullYear(); }
@@ -907,7 +871,6 @@ function App(props) {
     { id: "fatti", value: totF, label: "Gol Fatti", color: "#7de8a8" },
     { id: "subiti", value: totS, label: "Gol Subiti", color: "#e74c3c" },
     { id: "diff", value: totF - totS, label: "Diff. Reti", color: totF >= totS ? "#7de8a8" : "#e74c3c" },
-  /* @__PURE__ */ React.createElement("div",{style:{background:thm.cardBg,border:"1px solid "+thm.border,borderRadius:12,padding:"14px 16px",marginBottom:4}},React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:2,color:thm.navActive,marginBottom:12}},(function(){var c=(team.categoria||"").toLowerCase();return"\uD83D\uDD25 Gol per "+(c.indexOf("giovanissimi")>=0||c.indexOf("allievi")>=0||c.indexOf("juniores")>=0?"Tempo":"Quarto")+" \u2014 "+team.stagione;})()), (function(){var wQ=matches.filter(function(m){return m.q&&m.q.some(function(q){return q;});});if(!wQ.length)return React.createElement("div",{style:{textAlign:"center",padding:16,color:thm.textMuted,fontSize:12}},"Inserisci i parziali per visualizzare");var mxP=Math.max.apply(null,wQ.map(function(m){return m.q?m.q.filter(function(q){return q;}).length:0;}).concat([0]));var nP=mxP<=2?2:4;var qL=nP===2?["1\xb0 Tempo","2\xb0 Tempo"]:["1\xb0 T","2\xb0 T","3\xb0 T","4\xb0 T"];var qD=qL.map(function(l,qi){var f=0,s=0;wQ.forEach(function(m){if(!m.q||!m.q[qi])return;var p=m.q[qi].split("-");f+=parseInt(p[0])||0;s+=parseInt(p[1])||0;});return{q:l,fatti:f,subiti:s};});return React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat("+nP+",1fr)",gap:8}},qD.map(function(q){var d=q.fatti-q.subiti,ip=d>0,in_=d<0;return React.createElement("div",{key:q.q,style:{background:ip?"rgba(125,232,168,.12)":in_?"rgba(231,76,60,.1)":"rgba(255,255,255,.04)",border:"1px solid "+(ip?"rgba(125,232,168,.3)":in_?"rgba(231,76,60,.25)":"rgba(255,255,255,.08)"),borderRadius:10,padding:"10px 6px",textAlign:"center"}},React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:10,letterSpacing:2,color:thm.textMuted,marginBottom:5}},q.q),React.createElement("div",{style:{display:"flex",justifyContent:"center",gap:4,marginBottom:3}},React.createElement("span",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,lineHeight:1,color:"#7de8a8"}},q.fatti),React.createElement("span",{style:{fontSize:10,color:thm.textDim,alignSelf:"center"}},"-"),React.createElement("span",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,lineHeight:1,color:"#e74c3c"}},q.subiti)),React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:12,color:ip?"#7de8a8":in_?"#e74c3c":thm.textDim}},ip?"+"+d:d===0?"=":String(d)));})    );})()  ),
     { id: "stefano", value: `${totG_s}G/${totA_s}A`, label: "Stefano \u2B50", color: "#f39c12" }
   ];
   const drillColor = ((_a = CARDS.find((c) => c.id === drill)) == null ? void 0 : _a.color) || "#7de8a8";
@@ -993,7 +956,7 @@ function App(props) {
     return /* @__PURE__ */ React.createElement("div", { style: { ...cbox, borderLeft: "3px solid #ffd700", marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { ...ct, marginBottom: 6 } }, "\u{1F3C6} MVP di Giornata"), lastMvp ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "#ffd700", lineHeight: 1 } }, isStefMvp ? "\u2B50 " : "", lastMvp.mvpNome), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textMuted, marginTop: 4 } }, lastMvp.data.slice(0, 5), " \xB7 vs ", lastMvp.avversario)) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textDim, marginTop: 6 } }, "Nessun MVP registrato")), lastMvp && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", background: "rgba(255,215,0,.1)", border: "1px solid rgba(255,215,0,.3)", borderRadius: 12, padding: "10px 20px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 48, lineHeight: 1, color: "#ffd700" } }, lastMvp.mvpVoto), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "#a09030", marginTop: 2 } }, "Voto")));
   })(), /* @__PURE__ */ React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:14}},[{t:"Gol per Partita",d:barAll,bars:[{k:"F",n:"Fatti",c:"#7de8a8"},{k:"S",n:"Subiti",c:"#e74c3c"}]},{t:"Gol & Assist Stefano",d:barStef,bars:[{k:"G",n:"Gol",c:"#f39c12"},{k:"A",n:"Assist",c:"#9b59b6"}]}].map(function(ch){var mV=Math.max.apply(null,ch.d.map(function(r){return Math.max.apply(null,ch.bars.map(function(b){return r[b.k]||0;}));}).concat([1]));return React.createElement("div",{key:ch.t,style:cbox},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},React.createElement("div",{style:ct},ch.t),React.createElement("div",{style:{display:"flex",gap:10}},ch.bars.map(function(b){return React.createElement("div",{key:b.k,style:{display:"flex",alignItems:"center",gap:4}},React.createElement("div",{style:{width:8,height:8,borderRadius:2,background:b.c}}),React.createElement("span",{style:{fontSize:10,color:thm.textMuted}},b.n));}))),ch.d.map(function(row){return React.createElement("div",{key:row.n,style:{marginBottom:7}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:3}},React.createElement("span",{style:{fontSize:11,color:thm.text,fontFamily:"'Barlow Condensed',sans-serif"}},row.n),React.createElement("span",{style:{fontSize:9,color:thm.textDim}},row.data||"")),React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:3}},ch.bars.map(function(b){var v=row[b.k]||0,pct=mV>0?v/mV*100:0;return React.createElement("div",{key:b.k,style:{display:"flex",alignItems:"center",gap:6}},React.createElement("div",{style:{flex:1,height:7,background:"rgba(255,255,255,.06)",borderRadius:4,overflow:"hidden"}},React.createElement("div",{style:{width:pct+"%",height:"100%",background:b.c,borderRadius:4}})),React.createElement("span",{style:{fontSize:11,fontFamily:"'Bebas Neue',sans-serif",color:b.c,width:14,textAlign:"right"}},v));})));}));}))), tab === "partite" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14, textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 3, color: thm.navActive, marginBottom: 2 } }, "Partite ", team.stagione), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: thm.textMuted, marginBottom: 10 } }, matches.length, " partite registrate"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowAdd(true), style: { padding: "9px 28px", background: "rgba(125,232,168,.1)", border: "1px solid rgba(125,232,168,.35)", borderRadius: 8, color: "#7de8a8", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", boxShadow: "0 0 12px rgba(125,232,168,.08)" } }, "\uFF0B Aggiungi Partita")), /* @__PURE__ */ React.createElement("div", { className: "mob-scroll", style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, (function(){var h=["Data","Match","Sede","Risultato","Parziali","Stefano"];if(matches.some(function(m){return m.minuti>0;}))h.push("Min'");h.push("\u{1F3C6} MVP","Note","");return h;})().map((h) => /* @__PURE__ */ React.createElement("th", { key: h, style: thStyle }, h)))), /* @__PURE__ */ React.createElement("tbody", null, matches.map((m) => /* @__PURE__ */ React.createElement("tr", { key: m.id, onMouseEnter: (e) => e.currentTarget.style.background = thm.tableHover, onMouseLeave: (e) => e.currentTarget.style.background = "" }, /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, color: "#4ac8ff", fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: 1, fontSize: 13 } }, /* @__PURE__ */ React.createElement("div", null, m.data.slice(0, 5)), React.createElement("div",{style:{fontSize:14,lineHeight:1,cursor:"pointer"},
 onClick:function(e){e.stopPropagation();setWeatherPicker(m._uid||m.data);},
-title:"Clicca per modificare meteo"},(function(){var w=weatherCache[m._uid||m.data];return w?(w.emojiOverride||wmoEmoji(w.code)):"⌛";})()), m.ora && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#3a7a9a", marginTop: 2 } }, m.ora)), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, fontWeight: 600, fontSize: 13 } }, (() => {
+title:(function(){var w=weatherCache[m._uid||m.data];return (w&&w.emojiOverride)?"Meteo: "+w.emojiOverride+" (tap per cambiare)":"Tap per impostare meteo";})()},(function(){var w=weatherCache[m._uid||m.data];var weatherEmoji=w&&w.emojiOverride?w.emojiOverride:"🌤";var tIdx=w&&w.tempIdx!=null?w.tempIdx:null;var tColor=tIdx!=null?TEMP_SCALE[tIdx].c:"rgba(255,255,255,.15)";var fillH=tIdx!=null?Math.round(10-(tIdx/6)*8):0;var thermo=React.createElement("svg",{width:7,height:16,viewBox:"0 0 7 16",style:{marginLeft:2,verticalAlign:"middle"}},React.createElement("rect",{x:2,y:0,width:3,height:9,rx:1.5,fill:"rgba(128,128,128,.2)",stroke:"rgba(128,128,128,.4)",strokeWidth:0.5}),tIdx!=null?React.createElement("rect",{x:2.5,y:9-fillH,width:2,height:fillH,rx:0.5,fill:tColor}):null,React.createElement("circle",{cx:3.5,cy:13,r:2.5,fill:"rgba(128,128,128,.2)",stroke:"rgba(128,128,128,.4)",strokeWidth:0.5}),tIdx!=null?React.createElement("circle",{cx:3.5,cy:13,r:1.8,fill:tColor}):null);return React.createElement("div",{style:{display:"flex",alignItems:"center",lineHeight:1}},React.createElement("span",null,weatherEmoji),thermo);})()), m.ora && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#3a7a9a", marginTop: 2 } }, m.ora)), /* @__PURE__ */ React.createElement("td", { style: { ...tdStyle, fontWeight: 600, fontSize: 13 } }, (() => {
     var ml = matchLabel(m, team.nome, team.homeColor || "#7de8a8", thm.text);
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { color: ml.homeCol } }, ml.home), /* @__PURE__ */ React.createElement("span", { style: { color: thm.textMuted, fontSize: 11, fontWeight: 400 } }, "vs"), /* @__PURE__ */ React.createElement("span", { style: { color: ml.awayCol } }, ml.away));
   })(), m.campo && /* @__PURE__ */ React.createElement(
@@ -1209,7 +1172,9 @@ title:"Clicca per modificare meteo"},(function(){var w=weatherCache[m._uid||m.da
       var ts=u.ora?u.ora.replace(":","")+"00":"000000";
       var te=u.ora?(parseInt(u.ora.split(":")[0])+2).toString().padStart(2,"0")+u.ora.split(":")[1]+"00":"020000";
       var ics="BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:"+(u.tipo||"Partita")+" vs "+u.avversario+"\nLOCATION:"+(u.campo||"")+"\nDTSTART:"+ds+"T"+ts+"\nDTEND:"+ds+"T"+te+"\nEND:VEVENT\nEND:VCALENDAR";
-      var blob=new Blob([ics],{type:"text/calendar"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="partita.ics"; a.click();
+      var dataUri="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
+      var a=document.createElement("a"); a.href=dataUri; a.download="partita.ics";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     },
     title: "Aggiungi al Calendario",
     style: { background: "rgba(74,200,255,.15)", border: "1px solid rgba(74,200,255,.3)", borderRadius: 8, cursor: "pointer", color: "#4ac8ff", fontSize: 15, padding: "7px 11px" }
@@ -1290,8 +1255,9 @@ title:"Clicca per modificare meteo"},(function(){var w=weatherCache[m._uid||m.da
         upcoming.forEach(function(u){rows.push([u.data||"",u.ora||"",u.avversario||"",u.sede||"",u.campo||""]);});
       }
       var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
-      var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
-      var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stefano_"+team.stagione.replace("/","_")+".csv";a.click();
+      var dataUri="data:text/csv;charset=utf-8,"+encodeURIComponent("\uFEFF"+csv);
+      var a=document.createElement("a");a.href=dataUri;a.download="stefano_"+team.stagione.replace("/","_")+".csv";
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
       setShowExport(false);
     }
     function printPDF() {
@@ -1300,7 +1266,13 @@ title:"Clicca per modificare meteo"},(function(){var w=weatherCache[m._uid||m.da
       body+="<h2>"+team.nome+" — "+team.stagione+"</h2>";
       if(selItems.stats){var pl=matches.filter(function(m){return m.presenze===true&&m.avversario!=="Vari";});var wins=pl.filter(function(m){return m.fatti>m.subiti;}).length,draws=pl.filter(function(m){return m.fatti===m.subiti;}).length,totG=pl.reduce(function(a,m){return a+(m.golS||0);},0),totA=pl.reduce(function(a,m){return a+(m.assistS||0);},0);body+="<h2>Statistiche</h2><div class='sg'>";[{n:pl.length,l:"Partite"},{n:wins,l:"Vittorie"},{n:draws,l:"Pareggi"},{n:pl.length-wins-draws,l:"Sconfitte"},{n:totG,l:"Gol"},{n:totA,l:"Assist"}].forEach(function(s){body+="<div class='sb'><div class='sn'>"+s.n+"</div><div class='sl'>"+s.l+"</div></div>";});body+="</div>";}
       if(selItems.partite){body+="<h2>Partite</h2><table><tr><th>Data</th><th>Avversario</th><th>Sede</th><th>Risultato</th><th>Gol</th><th>Assist</th><th>Min</th><th>Pt</th></tr>";matches.filter(function(m){return m.presenze;}).forEach(function(m){var ris=m.fatti>m.subiti?"V":m.fatti===m.subiti?"P":"S";body+="<tr><td>"+m.data+"</td><td>"+m.avversario+"</td><td>"+m.sede+"</td><td style='font-weight:bold;color:"+(ris==="V"?"green":ris==="P"?"#c8910a":"#c0392b")+"'>"+m.fatti+"-"+m.subiti+"</td><td>"+m.golS+"</td><td>"+m.assistS+"</td><td>"+(m.minuti||"-")+"</td><td>"+(hasPunti(m)?getPunti(m):"-")+"</td></tr>";});body+="</table>";}
-      if(selItems.convocazioni&&convocazioni.length){body+="<h2>Convocazioni</h2><table><tr><th>Data</th><th>Avversario</th><th>Tipo</th><th>Convocato</th></tr>";convocazioni.forEach(function(c){body+="<tr><td>"+c.data+"</td><td>"+c.avversario+"</td><td>"+c.tipo+"</td><td>"+(c.convocato?"Si":"No")+"</td></tr>";});body+="</table>";}
+      if(selItems.convocazioni&&convocazioni.length){body+="<h2>Convocazioni</h2>";
+convocazioni.forEach(function(c,ci){var parts=[];if(c.data)parts.push("📅 "+c.data);if(c.ora)parts.push("⏰ "+c.ora);if(c.tipo)parts.push("🏷 "+c.tipo);if(c.luogo)parts.push("📍 "+c.luogo);if(c.campo)parts.push("🏟 "+c.campo);body+="<div style='border-left:3px solid #1a2a4a;padding:8px 12px;margin-bottom:8px;font-size:12px'>";
+body+="<div style='font-weight:bold;color:#1a2a4a;margin-bottom:4px'>#"+(ci+1)+(c.selezione?" — "+c.selezione:"")+"</div>";
+body+="<div style='color:#444;line-height:1.6'>"+parts.join(" &nbsp;·&nbsp; ")+"</div>";
+if(c.note)body+="<div style='margin-top:4px;font-style:italic;color:#666'>"+c.note+"</div>";
+body+="</div>";
+});}
       if(selItems.upcoming&&upcoming.length){body+="<h2>Prossime</h2><table><tr><th>Data</th><th>Ora</th><th>Avversario</th><th>Sede</th><th>Campo</th></tr>";upcoming.forEach(function(u){body+="<tr><td>"+u.data+"</td><td>"+(u.ora||"")+"</td><td>"+u.avversario+"</td><td>"+u.sede+"</td><td>"+(u.campo||"")+"</td></tr>";});body+="</table>";}
       body+="</body></html>";
       w.document.write(body);w.document.close();
@@ -1360,7 +1332,7 @@ title:"Clicca per modificare meteo"},(function(){var w=weatherCache[m._uid||m.da
         )
       )
     );
-  })(), weatherPicker && React.createElement("div",{onClick:(e)=>e.target===e.currentTarget&&setWeatherPicker(null),style:{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,.7)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}},React.createElement("div",{style:{background:thm.surface,border:"1px solid "+thm.border,borderRadius:16,padding:20,width:"100%",maxWidth:340}},React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:2,color:thm.text,marginBottom:12}},"Meteo Partita"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}},[{e:"☀️",l:"Sole"},{e:"⛅",l:"Parzialmente nuvoloso"},{e:"☁️",l:"Nuvoloso"},{e:"🌧️",l:"Pioggia"},{e:"⛈️",l:"Temporale"},{e:"🌩️",l:"Fulmine"},{e:"🌨️",l:"Neve leggera"},{e:"❄️",l:"Neve"},{e:"🌫️",l:"Nebbia"},{e:"🌬️",l:"Vento"},{e:"🌦️",l:"Pioggerella"},{e:"🌈",l:"Arcobaleno dopo pioggia"}].map(function(opt){var key=weatherPicker;var w=weatherCache[key]||{};var sel=w.emojiOverride===opt.e;return React.createElement("div",{key:opt.e,onClick:function(){setWeatherCache(function(prev){var next=Object.assign({},prev);var entry=Object.assign({},next[key]||{});entry.emojiOverride=opt.e;next[key]=entry;try{localStorage.setItem("wc_vogogna",JSON.stringify(next));}catch(e){}return next;});setWeatherPicker(null);},title:opt.l,style:{textAlign:"center",fontSize:22,padding:"8px 4px",borderRadius:8,cursor:"pointer",background:sel?"rgba(74,200,255,.2)":"rgba(255,255,255,.04)",border:"1px solid "+(sel?"#4ac8ff":thm.border)}},opt.e);})),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},React.createElement("button",{onClick:function(){setWeatherCache(function(prev){var next=Object.assign({},prev);var entry=Object.assign({},next[weatherPicker]||{});delete entry.emojiOverride;next[weatherPicker]=entry;try{localStorage.setItem("wc_vogogna",JSON.stringify(next));}catch(e){}return next;});setWeatherPicker(null);},style:{background:"none",border:"1px solid "+thm.border,borderRadius:8,padding:"6px 12px",color:thm.textMuted,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12}},"Ripristina auto"),React.createElement("button",{onClick:()=>setWeatherPicker(null),style:{background:"none",border:"none",cursor:"pointer",color:thm.textMuted,fontSize:20}},"×")))), shareMatch && (() => {
+  })(), weatherPicker && React.createElement("div",{onClick:(e)=>e.target===e.currentTarget&&setWeatherPicker(null),style:{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,.7)",backdropFilter:"blur(6px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}},React.createElement("div",{style:{background:thm.surface,border:"1px solid "+thm.border,borderRadius:16,padding:20,width:"100%",maxWidth:340}},React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:16,letterSpacing:2,color:thm.text,marginBottom:12}},"Meteo Partita"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}},[{e:"☀️",l:"Sole"},{e:"⛅",l:"Parzialmente nuvoloso"},{e:"☁️",l:"Nuvoloso"},{e:"🌧️",l:"Pioggia"},{e:"⛈️",l:"Temporale"},{e:"🌩️",l:"Fulmine"},{e:"🌨️",l:"Neve leggera"},{e:"❄️",l:"Neve"},{e:"🌫️",l:"Nebbia"},{e:"🌬️",l:"Vento"},{e:"🌦️",l:"Pioggerella"},{e:"🌈",l:"Arcobaleno dopo pioggia"}].map(function(opt){var key=weatherPicker;var w=weatherCache[key]||{};var sel=w.emojiOverride===opt.e;return React.createElement("div",{key:opt.e,onClick:function(){setWeatherCache(function(prev){var next=Object.assign({},prev);var entry=Object.assign({},next[key]||{});entry.emojiOverride=opt.e;next[key]=entry;try{localStorage.setItem("wc_vogogna",JSON.stringify(next));}catch(e){}return next;});setWeatherPicker(null);},title:opt.l,style:{textAlign:"center",fontSize:22,padding:"8px 4px",borderRadius:8,cursor:"pointer",background:sel?"rgba(74,200,255,.2)":"rgba(255,255,255,.04)",border:"1px solid "+(sel?"#4ac8ff":thm.border)}},opt.e);})),React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},React.createElement("div",{style:{marginBottom:14}},React.createElement("div",{style:{fontSize:10,color:thm.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontFamily:"'Barlow Condensed',sans-serif"}},"Temperatura percepita"),React.createElement("div",{style:{height:32,borderRadius:16,cursor:"pointer",position:"relative",background:"linear-gradient(to right,#e74c3c,#f39c12,#f1c40f,#7de8a8,#4ac8ff,#9b59b6,#c8d8ff)"},onClick:function(e){var key=weatherPicker;var rect=e.currentTarget.getBoundingClientRect();var pct=(e.clientX-rect.left)/rect.width;var idx=Math.min(6,Math.max(0,Math.floor(pct*7)));setWeatherCache(function(prev){var nxt=Object.assign({},prev);var entry=Object.assign({},nxt[key]||{});entry.tempIdx=idx;nxt[key]=entry;try{localStorage.setItem("wc_vogogna",JSON.stringify(nxt));}catch(e2){}return nxt;});}},(function(){var key=weatherPicker;var w=weatherCache[key]||{};var idx=w.tempIdx!=null?w.tempIdx:null;if(idx===null)return null;return React.createElement("div",{style:{position:"absolute",top:"50%",transform:"translate(-50%,-50%)",left:(idx/6*100)+"%",width:26,height:26,borderRadius:"50%",background:TEMP_SCALE[idx].c,border:"3px solid #fff",boxShadow:"0 2px 6px rgba(0,0,0,.4)",pointerEvents:"none"}});})()),(function(){var key=weatherPicker;var w=weatherCache[key]||{};var idx=w.tempIdx!=null?w.tempIdx:null;if(idx===null)return React.createElement("div",{style:{textAlign:"center",fontSize:10,color:thm.textMuted,fontFamily:"'Barlow Condensed',sans-serif",marginTop:6}},"Tocca la barra per selezionare");var ts=TEMP_SCALE[idx];return React.createElement("div",{style:{textAlign:"center",fontSize:13,color:ts.c,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,marginTop:4}},ts.l+" \u2022 "+ts.r);})()),React.createElement("button",{onClick:function(){setWeatherCache(function(prev){var next=Object.assign({},prev);var entry=Object.assign({},next[weatherPicker]||{});delete entry.emojiOverride;next[weatherPicker]=entry;try{localStorage.setItem("wc_vogogna",JSON.stringify(next));}catch(e){}return next;});setWeatherPicker(null);},style:{background:"none",border:"1px solid "+thm.border,borderRadius:8,padding:"6px 12px",color:thm.textMuted,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12}},"Ripristina auto"),React.createElement("button",{onClick:()=>setWeatherPicker(null),style:{background:"none",border:"none",cursor:"pointer",color:thm.textMuted,fontSize:20}},"×")))), shareMatch && (() => {
     const m=shareMatch;
     const isVin=m.fatti>m.subiti,isPar=m.fatti===m.subiti;
     const ris=isVin?"VITTORIA":isPar?"PAREGGIO":"SCONFITTA";
