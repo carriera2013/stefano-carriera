@@ -828,9 +828,9 @@ function App(props) {
   })());
   useEffect(function() {
     if (typeof saveData === "function") {
-      saveData({ matches, allMatches, team, upcoming, convocazioni });
+      saveData({ matches, allMatches, team, upcoming, convocazioni, tornei });
     }
-  }, [matches, allMatches, team, upcoming, convocazioni]);
+  }, [matches, allMatches, team, upcoming, convocazioni, tornei]);
   useEffect(function() {
     if (!_subscribeRealtime) return;
     _subscribeRealtime(function(d) {
@@ -1358,9 +1358,18 @@ showTorneo && (function(){
   // Sync automatico partite Vogogna dal tab Partite
   function syncVogogna() {
     var vogoMatches = matches.filter(function(m){
-      return m.presenze && m.tipo === tor.nome;
+      return m.presenze && tor.squadre.some(function(sq){
+        return sq === m.avversario;
+      });
     });
     if (!vogoMatches.length) return;
+    // Calcola date min/max dalle partite importate
+    var dates = vogoMatches.map(function(m){return m.data;}).filter(Boolean).sort(function(a,b){
+      var fa=a.split("/").reverse().join("-"),fb=b.split("/").reverse().join("-");
+      return fa<fb?-1:fa>fb?1:0;
+    });
+    var minDate = dates[0]||"";
+    var maxDate = dates[dates.length-1]||"";
     setTornei(function(prev){
       return prev.map(function(t){
         if (t._uid !== tor._uid) return t;
@@ -1387,7 +1396,9 @@ showTorneo && (function(){
               golHome:golHome, golAway:golAway, fase:"girone", synced:true});
           }
         });
-        return Object.assign({}, t, {partite: partite, squadre: squadre});
+        var newDataInizio = (!t.dataInizio && minDate) ? minDate : t.dataInizio;
+        var newDataFine = maxDate ? maxDate : t.dataFine;
+        return Object.assign({}, t, {partite: partite, squadre: squadre, dataInizio: newDataInizio, dataFine: newDataFine});
       });
     });
   }
@@ -1629,6 +1640,37 @@ function calcClass(partite, squadre) {
       setData: setNewM,
       onSave: () => {
         const nu = { ...newM, id: "up_" + Date.now(), _uid: "up_" + Date.now() + "_" + Math.random().toString(36).slice(2), tipo: newM.tipo || "Campionato" };
+        // Se è un torneo, crea/aggiorna torneo automaticamente
+        if (nu.tipo && nu.tipo.toLowerCase().indexOf("torneo") >= 0) {
+          setTornei(function(prev) {
+            var existing = prev.find(function(t) { return t.nome === nu.tipo; });
+            if (existing) {
+              // Aggiorna date se la nuova data è fuori range
+              return prev.map(function(t) {
+                if (t.nome !== nu.tipo) return t;
+                var dates = [t.dataInizio, t.dataFine, nu.data].filter(Boolean).sort(function(a,b){
+                  var fa=a.split("/").reverse().join("-"),fb=b.split("/").reverse().join("-");
+                  return fa<fb?-1:fa>fb?1:0;
+                });
+                return Object.assign({}, t, {
+                  dataInizio: dates[0] || t.dataInizio,
+                  dataFine: dates[dates.length-1] || t.dataFine
+                });
+              });
+            } else {
+              // Crea nuovo torneo con la data della partita
+              return prev.concat([{
+                _uid: "t_" + Date.now(),
+                nome: nu.tipo,
+                dataInizio: nu.data || "",
+                dataFine: nu.data || "",
+                formato: "misto",
+                squadre: [team.nome],
+                partite: []
+              }]);
+            }
+          });
+        }
         setUpcoming((p) => [...p, nu].sort((a, b) => {
           const ds = (s) => {
             if (!s) return 0;
