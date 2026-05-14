@@ -1357,10 +1357,27 @@ showTorneo && (function(){
   // Calcola classifica dal girone
   // Sync automatico partite Vogogna dal tab Partite
   function syncVogogna() {
+    // Filtra per tipo torneo E range date del torneo
     var vogoMatches = matches.filter(function(m){
-      return m.presenze && tor.squadre.some(function(sq){
-        return sq === m.avversario;
-      });
+      if (!m.presenze || !m.data) return false;
+      // Deve avere tipo che contiene "torneo"
+      if (!m.tipo || m.tipo.toLowerCase().indexOf("torneo") < 0) return false;
+      // Se il torneo ha date impostate, la partita deve essere dentro quel range
+      if (tor.dataInizio || tor.dataFine) {
+        var md = m.data.split("/").reverse().join("-");
+        if (tor.dataInizio) {
+          var di = tor.dataInizio.split("/").reverse().join("-");
+          if (md < di) return false;
+        }
+        if (tor.dataFine) {
+          var df = tor.dataFine.split("/").reverse().join("-");
+          if (md > df) return false;
+        }
+      } else {
+        // Nessuna data impostata: filtra per nome torneo
+        if (m.tipo !== tor.nome) return false;
+      }
+      return true;
     });
     if (!vogoMatches.length) return;
     // Calcola date min/max dalle partite importate
