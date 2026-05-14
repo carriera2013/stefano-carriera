@@ -983,14 +983,31 @@ title:(function(){var w=weatherCache[m._uid||m.data];return (w&&w.emojiOverride)
     React.createElement("div", { style: { marginTop: 3 } },
       React.createElement("button", {
         onClick: function(e) { e.stopPropagation();
-          var nome = m.tipo;
-          var t = tornei.find(function(t){ return t.nome === nome; });
-          if (!t) {
-            t = { _uid: "t_"+Date.now(), nome: nome, formato: "misto",
-              squadre: [team.nome], partite: [] };
-            setTornei(function(prev){ return prev.concat([t]); });
+          // 1. Cerca per range date
+          var mDate = m.data ? m.data.split("/").reverse().join("-") : null;
+          var found = mDate ? tornei.find(function(t) {
+            if (!t.dataInizio || !t.dataFine) return false;
+            var di = t.dataInizio.split("/").reverse().join("-");
+            var df = t.dataFine.split("/").reverse().join("-");
+            return mDate >= di && mDate <= df;
+          }) : null;
+          // 2. Cerca per nome esatto
+          if (!found) found = tornei.find(function(t) { return t.nome === m.tipo; });
+          // 3. Cerca per nome parziale (torneo che contiene il tipo o viceversa)
+          if (!found && m.tipo) found = tornei.find(function(t) {
+            return t.nome.toLowerCase().indexOf(m.tipo.toLowerCase()) >= 0
+              || m.tipo.toLowerCase().indexOf(t.nome.toLowerCase()) >= 0;
+          });
+          if (found) {
+            setShowTorneo(found._uid);
+          } else {
+            // Crea nuovo con data partita
+            var nu = { _uid:"t_"+Date.now(), nome:m.tipo||"Nuovo Torneo",
+              dataInizio:m.data||"", dataFine:m.data||"",
+              formato:"misto", squadre:[team.nome], partite:[] };
+            setTornei(function(prev){ return prev.concat([nu]); });
+            setShowTorneo(nu._uid);
           }
-          setShowTorneo(t._uid);
         },
         style: { background: "rgba(255,215,0,.15)", border: "1px solid rgba(255,215,0,.3)",
           borderRadius: 6, cursor: "pointer", color: "#ffd700",
