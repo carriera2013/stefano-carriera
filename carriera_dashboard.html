@@ -781,6 +781,7 @@ function App(props) {
   const [showAdd, setShowAdd] = useState(false);
   const [shareMatch, setShareMatch] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
   const [weatherCache, setWeatherCache] = useState(function(){
     try{return JSON.parse(localStorage.getItem("wc_vogogna")||"{}");}
     catch(e){return {};}
@@ -831,6 +832,27 @@ function App(props) {
     if (typeof saveData === "function") {
       saveData({ matches, allMatches, team, upcoming, convocazioni, tornei });
     }
+  }, [matches, allMatches, team, upcoming, convocazioni, tornei]);
+  // Auto-backup locale: mantieni ultimi 3 snapshot con timestamp
+  useEffect(function() {
+    try {
+      var snap = JSON.stringify({
+        version:"1.0", ts:new Date().toISOString(),
+        data:{matches,allMatches,team,upcoming,convocazioni,tornei}
+      });
+      var slots = [];
+      try{slots=JSON.parse(localStorage.getItem("sc_backups")||"[]");}catch(e){}
+      slots.unshift({ts:new Date().toISOString(), size:snap.length});
+      if(slots.length>3) slots=slots.slice(0,3);
+      localStorage.setItem("sc_backup_0", snap);
+      // Ruota: shift degli slot precedenti
+      var prev1=localStorage.getItem("sc_backup_0_prev");
+      if(prev1) localStorage.setItem("sc_backup_1", prev1);
+      var prev2=localStorage.getItem("sc_backup_1_prev");
+      if(prev2) localStorage.setItem("sc_backup_2", prev2);
+      localStorage.setItem("sc_backup_0_prev", snap);
+      localStorage.setItem("sc_backups", JSON.stringify(slots));
+    } catch(e) {}
   }, [matches, allMatches, team, upcoming, convocazioni, tornei]);
   useEffect(function() {
     if (!_subscribeRealtime) return;
@@ -945,7 +967,13 @@ function App(props) {
   return /* @__PURE__ */ React.createElement("div", { style: { minHeight: "100vh", background: thm.bg, color: thm.text, fontFamily: "'Barlow',sans-serif", transition: "background .3s,color .3s", overflowX: "hidden" } }, /* @__PURE__ */ React.createElement("style", null, `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');*{box-sizing:border-box;margin:0;padding:0}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:${thm.scrollbarThumb};border-radius:2px}@media(max-width:767px){.desktop-nav{display:none!important}.desktop-counters{display:none!important}.main-pad{padding:10px 12px 52px!important}.header-pad{padding:8px 12px 0!important}.card-grid{grid-template-columns:repeat(2,1fr)!important}.two-col{grid-template-columns:1fr!important}.stat-grid{grid-template-columns:repeat(2,1fr)!important}}@media(min-width:768px){.main-pad{padding:24px 32px!important}.header-pad{padding:14px 32px 0!important}}`), /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: thm.glow } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", { className: "header-pad", style: { padding: "14px 32px 0", borderBottom: `1px solid ${thm.border}`, background: thm.headerBg, backdropFilter: "blur(20px)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("img", { src: team.logo, alt: "Logo", style: { width: 62, height: 62, borderRadius: "50%", objectFit: "cover", border: `2px solid ${thm.borderAccent}`, boxShadow: `0 0 18px rgba(125,232,168,.15)` } }), /* @__PURE__ */ React.createElement("button", { onClick: () => {
     setTeamDraft({ ...team, _histPreview: teamHistory });
     setShowTeamEdit(true);
-  }, title: "Impostazioni squadra", style: { position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: "50%", background: isDark ? "#1a3a5a" : "#ddeeff", border: `1px solid ${thm.border}`, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center" } }, "\u2699")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(20px,3.5vw,44px)", letterSpacing: 4, lineHeight: 1, background: "linear-gradient(135deg,#7de8a8,#4ac8ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } }, team.nome), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textMuted, letterSpacing: 1, marginTop: 2 } }, team.categoria, " \xB7 ", team.stagione), teamHistory.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: thm.textDim, marginTop: 2 } }, "Precedente: ", teamHistory.map((h, i) => /* @__PURE__ */ React.createElement("span", { key: i, style: { marginRight: 6 } }, h.nome, " (", h.stagioneDa, "\u2192", h.stagioneFine, ")"))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, alignItems: "center" } }, [{ v: TOT_GOL, l: "Gol", c: "#f39c12" }, { v: TOT_ASS, l: "Assist", c: "#9b59b6" }, { v: totPres, l: "Presenze", c: "#7de8a8" }].map((x, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { textAlign: "center", background: thm.cardBg, border: `1px solid ${thm.border}`, borderRadius: 10, padding: "9px 14px", minWidth: 66 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, lineHeight: 1, color: x.c } }, x.v), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: thm.textMuted, marginTop: 2 } }, x.l))), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: 10, display: "flex", flexDirection: "column", gap: 4, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: thm.textDim, textAlign: "right" } }, "\u2B50 Stefano Carriera"), /* @__PURE__ */ React.createElement("button", { onClick: () => setIsDark((p) => !p), title: "Cambia tema", style: { padding: "6px 12px", borderRadius: 20, border: `1px solid ${thm.border}`, background: thm.cardBg, color: thm.text, cursor: "pointer", fontSize: 14, transition: "all .2s" } }, isDark ? "\u2600\uFE0F Light" : "\u{1F319} Dark")))), /* @__PURE__ */ /* @__PURE__ */ React.createElement("button", { onClick: () => setShowExport(true), style: { background: "rgba(74,200,255,.15)", border: "1px solid rgba(74,200,255,.3)", borderRadius: 8, cursor: "pointer", color: "#4ac8ff", fontSize: 11, padding: "5px 10px", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, alignSelf: "center" } }, "\uD83D\uDCE5 Export"), React.createElement("div", { style: { display: "flex", gap: 0 } }, [["dashboard", "Dashboard"], ["partite", "Partite"], ["stefano", "Stefano \u2B50"], ["storico", "\u{1F4CB} Storico"], ["calendario", "Calendario"], ["convocazioni", "Convocazioni"]].map(([id, lbl]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => {
+  }, title: "Impostazioni squadra", style: { position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: "50%", background: isDark ? "#1a3a5a" : "#ddeeff", border: `1px solid ${thm.border}`, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center" } }, "\u2699")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(20px,3.5vw,44px)", letterSpacing: 4, lineHeight: 1, background: "linear-gradient(135deg,#7de8a8,#4ac8ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } }, team.nome), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: thm.textMuted, letterSpacing: 1, marginTop: 2 } }, team.categoria, " \xB7 ", team.stagione), teamHistory.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: thm.textDim, marginTop: 2 } }, "Precedente: ", teamHistory.map((h, i) => /* @__PURE__ */ React.createElement("span", { key: i, style: { marginRight: 6 } }, h.nome, " (", h.stagioneDa, "\u2192", h.stagioneFine, ")"))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, alignItems: "center" } }, [{ v: TOT_GOL, l: "Gol", c: "#f39c12" }, { v: TOT_ASS, l: "Assist", c: "#9b59b6" }, { v: totPres, l: "Presenze", c: "#7de8a8" }].map((x, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { textAlign: "center", background: thm.cardBg, border: `1px solid ${thm.border}`, borderRadius: 10, padding: "9px 14px", minWidth: 66 } }, /* @__PURE__ */ React.createElement("div", { style: { fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, lineHeight: 1, color: x.c } }, x.v), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: thm.textMuted, marginTop: 2 } }, x.l))), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: 10, display: "flex", flexDirection: "column", gap: 4, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: thm.textDim, textAlign: "right" } }, "\u2B50 Stefano Carriera"), /* @__PURE__ */ React.createElement("button", { onClick: () => setIsDark((p) => !p), title: "Cambia tema", style: { padding: "6px 12px", borderRadius: 20, border: `1px solid ${thm.border}`, background: thm.cardBg, color: thm.text, cursor: "pointer", fontSize: 14, transition: "all .2s" } }, isDark ? "\u2600\uFE0F Light" : "\u{1F319} Dark")))), /* @__PURE__ */ /* @__PURE__ */ React.createElement("button", { onClick: () => setShowBackup(true),
+  style: { background: "rgba(125,232,168,.15)", border: "1px solid rgba(125,232,168,.3)",
+    borderRadius: 8, cursor: "pointer", color: "#7de8a8", fontSize: 11,
+    padding: "5px 10px", fontFamily: "'Barlow Condensed',sans-serif",
+    fontWeight: 700, letterSpacing: 1, alignSelf: "center" } },
+  "💾 Backup"),
+/* @__PURE__ */ React.createElement("button", { onClick: () => setShowExport(true), style: { background: "rgba(74,200,255,.15)", border: "1px solid rgba(74,200,255,.3)", borderRadius: 8, cursor: "pointer", color: "#4ac8ff", fontSize: 11, padding: "5px 10px", fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, letterSpacing: 1, alignSelf: "center" } }, "\uD83D\uDCE5 Export"), React.createElement("div", { style: { display: "flex", gap: 0 } }, [["dashboard", "Dashboard"], ["partite", "Partite"], ["stefano", "Stefano \u2B50"], ["storico", "\u{1F4CB} Storico"], ["calendario", "Calendario"], ["convocazioni", "Convocazioni"]].map(([id, lbl]) => /* @__PURE__ */ React.createElement("button", { key: id, onClick: () => {
     setTab(id);
     setDrill(null);
   }, style: { padding: "10px 20px", background: "none", border: "none", cursor: "pointer", fontFamily: "'Barlow Condensed',sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: tab === id ? thm.navActive : thm.navInactive, borderBottom: tab === id ? `3px solid ${thm.navActive}` : "3px solid transparent", transition: "color .2s" } }, lbl)))), /* @__PURE__ */ React.createElement("div", { style: { padding: "24px 32px" } }, tab === "dashboard" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(108px,1fr))", gap: 10, marginBottom: 4 } }, CARDS.map((c) => /* @__PURE__ */ React.createElement(SC, { key: c.id, ...c, active: drill === c.id, onClick: toggle }))), /* @__PURE__ */ React.createElement(DrillWrapper, { drill, color: drillColor, matches }),
@@ -1666,6 +1694,140 @@ function calcClass(partite, squadre) {
       ),
       /* Footer modal */
       React.createElement("div",{style:{padding:"12px 20px 16px",borderTop:"1px solid rgba(255,255,255,.08)",display:"flex",gap:10,justifyContent:"space-between"}},        React.createElement("div",{style:{display:"flex",gap:8}},React.createElement("button",{onClick:function(){  var a=!tor.archiviato;  setTornei(function(prev){return prev.map(function(t){return t._uid===tor._uid?Object.assign({},t,{archiviato:a}):t;});});  setShowTorneo(null);},style:{background:"rgba(255,193,7,.12)",border:"1px solid rgba(255,193,7,.35)",borderRadius:8,  cursor:"pointer",color:"#ffc107",fontSize:12,padding:"7px 14px",  fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:1}},tor.archiviato?"📂 Ripristina":"📦 Archivia"),React.createElement("button",{onClick:function(){  if(confirm("Eliminare definitivamente \""+tor.nome+"\"?")){setTornei(function(prev){return prev.filter(function(t){return t._uid!==tor._uid;});});setShowTorneo(null);}},style:{background:"rgba(231,76,60,.12)",border:"1px solid rgba(231,76,60,.35)",borderRadius:8,  cursor:"pointer",color:"#e74c3c",fontSize:12,padding:"7px 14px",  fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:1}},"🗑 Elimina")),        React.createElement("button",{          onClick:function(){setShowTorneo(null);},          style:{background:"rgba(125,232,168,.12)",border:"1px solid rgba(125,232,168,.3)",borderRadius:8,            cursor:"pointer",color:"#7de8a8",fontSize:12,padding:"7px 20px",            fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:1}        },"✓ Chiudi")      )
+    )
+  );
+})(), showBackup && (function(){
+  function getBackupData() {
+    return JSON.stringify({
+      version:"1.0",
+      timestamp:new Date().toISOString(),
+      app:"Stefano Carriera",
+      team:team.nome,
+      stagione:team.stagione,
+      data:{matches,allMatches,team,upcoming,convocazioni,tornei}
+    }, null, 2);
+  }
+  function downloadBackup() {
+    var json=getBackupData();
+    var ts=new Date().toISOString().slice(0,10);
+    var uri="data:application/json;charset=utf-8,"+encodeURIComponent(json);
+    var a=document.createElement("a");
+    a.href=uri; a.download="stefano_backup_"+ts+".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  function restoreFromFile() {
+    var inp=document.createElement("input");
+    inp.type="file"; inp.accept=".json";
+    inp.onchange=function(e){
+      var file=e.target.files[0]; if(!file)return;
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        try{
+          var bk=JSON.parse(ev.target.result);
+          var d=bk.data||bk;
+          if(!d.matches) throw new Error("File non valido");
+          if(!confirm("Ripristinare il backup del "+new Date(bk.timestamp).toLocaleDateString("it-IT")+"?\nI dati attuali verranno sovrascritti.")) return;
+          if(d.matches) setMatches(d.matches);
+          if(d.allMatches) setAllMatches(d.allMatches);
+          if(d.team) setTeam(d.team);
+          if(d.upcoming) setUpcoming(d.upcoming);
+          if(d.convocazioni) setConvocazioni(d.convocazioni);
+          if(d.tornei) setTornei(d.tornei);
+          setShowBackup(false);
+          alert("✓ Backup ripristinato con successo!");
+        } catch(err){ alert("Errore nel file: "+err.message); }
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
+  }
+  function getLocalBackups() {
+    var res=[];
+    for(var i=0;i<3;i++){
+      try{
+        var raw=localStorage.getItem("sc_backup_"+i);
+        if(!raw)continue;
+        var bk=JSON.parse(raw);
+        var d=bk.data||bk;
+        res.push({idx:i,ts:bk.timestamp||bk.ts,
+          partite:(d.matches||[]).length,
+          tornei:(d.tornei||[]).length,
+          data:bk});
+      }catch(e){}
+    }
+    return res;
+  }
+  var localBackups=getLocalBackups();
+  function restoreLocal(bk) {
+    var d=bk.data||bk;
+    if(!confirm("Ripristinare questo backup?\nI dati attuali verranno sovrascritti."))return;
+    if(d.matches)setMatches(d.matches);
+    if(d.allMatches)setAllMatches(d.allMatches);
+    if(d.team)setTeam(d.team);
+    if(d.upcoming)setUpcoming(d.upcoming);
+    if(d.convocazioni)setConvocazioni(d.convocazioni);
+    if(d.tornei)setTornei(d.tornei);
+    setShowBackup(false);
+    alert("✓ Backup ripristinato!");
+  }
+  return React.createElement("div",{
+    onClick:function(e){if(e.target===e.currentTarget)setShowBackup(false);},
+    style:{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,.85)",backdropFilter:"blur(10px)",
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto"}
+  },
+    React.createElement("div",{style:{background:thm.surface,border:"1px solid "+thm.border,borderRadius:20,
+      padding:24,width:"100%",maxWidth:380}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        React.createElement("div",{style:{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:3,color:thm.text}},"💾 Backup & Ripristino"),
+        React.createElement("button",{onClick:function(){setShowBackup(false);},
+          style:{background:"none",border:"none",cursor:"pointer",color:thm.textMuted,fontSize:22}},"×")
+      ),
+      // Info dati attuali
+      React.createElement("div",{style:{background:"rgba(255,255,255,.04)",borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:thm.textMuted}},
+        React.createElement("div",{style:{color:thm.text,fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:600,marginBottom:6}},"Dati attuali"),
+        React.createElement("div",null,"⚽ "+matches.length+" partite · 📅 "+upcoming.length+" prossime"),
+        React.createElement("div",null,"📋 "+convocazioni.length+" convocazioni · 🏆 "+tornei.length+" tornei")
+      ),
+      // Sezione download
+      React.createElement("div",{style:{marginBottom:16}},
+        React.createElement("div",{style:{fontSize:11,color:thm.textMuted,marginBottom:8,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}},"Crea backup"),
+        React.createElement("button",{onClick:downloadBackup,
+          style:{width:"100%",padding:"11px",borderRadius:10,border:"none",
+            background:"linear-gradient(135deg,#7de8a8,#4ac8ff)",color:"#080e14",
+            cursor:"pointer",fontFamily:"'Bebas Neue',sans-serif",fontSize:15,letterSpacing:2}},
+          "📥 Scarica backup JSON")
+      ),
+      // Sezione ripristino da file
+      React.createElement("div",{style:{marginBottom:16}},
+        React.createElement("div",{style:{fontSize:11,color:thm.textMuted,marginBottom:8,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}},"Ripristina da file"),
+        React.createElement("button",{onClick:restoreFromFile,
+          style:{width:"100%",padding:"11px",borderRadius:10,background:"rgba(255,255,255,.06)",
+            border:"1px solid "+thm.border,color:thm.text,cursor:"pointer",
+            fontFamily:"'Bebas Neue',sans-serif",fontSize:14,letterSpacing:2}},
+          "📤 Importa file .json")
+      ),
+      // Backup automatici locali
+      localBackups.length>0&&React.createElement("div",null,
+        React.createElement("div",{style:{fontSize:11,color:thm.textMuted,marginBottom:8,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1,textTransform:"uppercase"}},"Backup automatici locali"),
+        localBackups.map(function(b){
+          var dt=b.ts?new Date(b.ts).toLocaleString("it-IT"):"N/D";
+          return React.createElement("div",{key:b.idx,
+            style:{display:"flex",alignItems:"center",justifyContent:"space-between",
+              background:"rgba(255,255,255,.04)",borderRadius:8,padding:"8px 12px",marginBottom:6}},
+            React.createElement("div",null,
+              React.createElement("div",{style:{fontSize:11,color:thm.text,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600}},
+                b.idx===0?"Più recente":b.idx===1?"Precedente":"Più vecchio"),
+              React.createElement("div",{style:{fontSize:10,color:thm.textMuted}},dt),
+              React.createElement("div",{style:{fontSize:9,color:thm.textMuted}},b.partite+" partite · "+b.tornei+" tornei")
+            ),
+            React.createElement("button",{onClick:function(){restoreLocal(b.data);},
+              style:{background:"rgba(74,200,255,.15)",border:"1px solid rgba(74,200,255,.3)",
+                borderRadius:8,cursor:"pointer",color:"#4ac8ff",fontSize:11,padding:"5px 12px",
+                fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700}},
+              "Ripristina")
+          );
+        })
+      )
     )
   );
 })(), shareMatch && (() => {
