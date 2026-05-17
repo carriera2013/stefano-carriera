@@ -858,7 +858,9 @@ function App(props) {
     if (!_subscribeRealtime) return;
     _subscribeRealtime(function(d) {
       if (!d) return;
-      if (d.matches) setMatches(d.matches);
+      if (d.matches) setMatches(d.matches.map(function(m){
+        return m.squadra ? m : Object.assign({},m,{squadra: d.team ? d.team.nome : team.nome});
+      }));
       if (d.allMatches) setAllMatches(d.allMatches);
       if (d.team) setTeam(d.team);
       if (d.upcoming) setUpcoming(d.upcoming);
@@ -1727,7 +1729,7 @@ function calcClass(partite, squadre) {
           var d=bk.data||bk;
           if(!d.matches) throw new Error("File non valido");
           if(!confirm("Ripristinare il backup del "+new Date(bk.timestamp).toLocaleDateString("it-IT")+"?\nI dati attuali verranno sovrascritti.")) return;
-          if(d.matches) setMatches(d.matches);
+          if(d.matches) setMatches((d.matches||[]).map(function(m){return m.squadra?m:Object.assign({},m,{squadra:d.team?d.team.nome:team.nome});}));
           if(d.allMatches) setAllMatches(d.allMatches);
           if(d.team) setTeam(d.team);
           if(d.upcoming) setUpcoming(d.upcoming);
@@ -1761,7 +1763,7 @@ function calcClass(partite, squadre) {
   function restoreLocal(bk) {
     var d=bk.data||bk;
     if(!confirm("Ripristinare questo backup?\nI dati attuali verranno sovrascritti."))return;
-    if(d.matches)setMatches(d.matches);
+    if(d.matches)setMatches((d.matches||[]).map(function(m){return m.squadra?m:Object.assign({},m,{squadra:d.team?d.team.nome:team.nome});}));
     if(d.allMatches)setAllMatches(d.allMatches);
     if(d.team)setTeam(d.team);
     if(d.upcoming)setUpcoming(d.upcoming);
