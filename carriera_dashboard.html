@@ -1960,10 +1960,10 @@ function calcClass(partite, squadre) {
               var isVogoA=p.away===team.nome||p.away.toLowerCase().indexOf(team.nome.toLowerCase())>=0;
               var winner=p.golHome!=null&&p.golAway!=null?(p.golHome>p.golAway?p.home:p.golHome<p.golAway?p.away:"—"):null;
               var isVogoWin=winner&&(winner===team.nome||winner.toLowerCase().indexOf("vogogna")>=0||winner.toLowerCase().indexOf("academy")>=0);
-              return React.createElement("div",{key:p._uid,style:{display:"flex",alignItems:"center",gap:6,marginBottom:4,background:fase==="finale"?"rgba(255,215,0,.05)":"rgba(255,255,255,.02)",border:"1px solid "+(fase==="finale"?"rgba(255,215,0,.2)":"rgba(255,255,255,.06)"),borderRadius:8,padding:"6px 8px"}},
+              return React.createElement("div",{key:p._uid,style:{display:"flex",flexWrap:"wrap",alignItems:"center",gap:6,marginBottom:4,background:fase==="finale"?"rgba(255,215,0,.05)":"rgba(255,255,255,.02)",border:"1px solid "+(fase==="finale"?"rgba(255,215,0,.2)":"rgba(255,255,255,.06)"),borderRadius:8,padding:"6px 8px"}},
                 React.createElement("input",{placeholder:"Casa",value:p.home,
                   onChange:function(e){updatePartita(p._uid,"home",e.target.value);},
-                  style:{flex:2,background:"transparent",border:"none",color:isVogoH?"#ffd700":thm.text,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",padding:"2px"}}),
+                  style:{flex:2,background:"rgba(255,255,255,.06)",border:"none",outline:"none",color:isVogoH?"#ffd700":"#ffffff",WebkitTextFillColor:isVogoH?"#ffd700":"#ffffff",fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",padding:"2px",borderRadius:4}}),
                 React.createElement("input",{type:"number",min:0,max:99,placeholder:"—",value:p.golHome!=null?p.golHome:"",
                   onChange:function(e){updatePartita(p._uid,"golHome",e.target.value===""?null:+e.target.value);},
                   style:{width:32,textAlign:"center",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:4,color:"#fff",fontSize:14,padding:"3px",fontFamily:"'Bebas Neue',sans-serif"}}),
@@ -1973,11 +1973,20 @@ function calcClass(partite, squadre) {
                   style:{width:32,textAlign:"center",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.15)",borderRadius:4,color:"#fff",fontSize:14,padding:"3px",fontFamily:"'Bebas Neue',sans-serif"}}),
                 React.createElement("input",{placeholder:"Ospite",value:p.away,
                   onChange:function(e){updatePartita(p._uid,"away",e.target.value);},
-                  style:{flex:2,background:"transparent",border:"none",color:isVogoA?"#ffd700":thm.text,fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",padding:"2px",textAlign:"right"}}),
+                  style:{flex:2,background:"rgba(255,255,255,.06)",border:"none",outline:"none",color:isVogoA?"#ffd700":"#ffffff",WebkitTextFillColor:isVogoA?"#ffd700":"#ffffff",fontSize:11,fontFamily:"'Barlow Condensed',sans-serif",padding:"2px",borderRadius:4,textAlign:"right"}}),
                 winner&&React.createElement("span",{style:{fontSize:13,marginLeft:2},title:"Vince: "+winner},isVogoWin?"🏆":"✓"),
                 React.createElement("button",{onClick:function(){removePartita(p._uid);},
                   style:{background:"none",border:"none",cursor:"pointer",color:"rgba(231,76,60,.5)",fontSize:12,padding:"2px"}
-                },"🗑")
+                },"🗑"),
+                React.createElement("input",{
+                  placeholder:"Note (es. 4-3 d.c.r., tempi supplementari…)",
+                  value:p.note||"",
+                  onChange:function(e){updatePartita(p._uid,"note",e.target.value);},
+                  style:{flexBasis:"100%",marginTop:3,background:"rgba(255,255,255,.04)",
+                    border:"1px solid rgba(255,255,255,.08)",borderRadius:5,
+                    color:"#a0b8d0",WebkitTextFillColor:"#a0b8d0",fontSize:10,
+                    fontFamily:"'Barlow Condensed',sans-serif",padding:"3px 7px",outline:"none"}
+                })
               );
             })
           );
