@@ -850,8 +850,6 @@ function App(props) {
     const src = _ini && _ini.convocazioni || [];
     return src.map((c, i) => c._uid ? c : { ...c, _uid: "conv_" + i + "_" + (c.data || "").replace(/\//g, "") + "_" + (c.selezione || "").slice(0, 4) });
   })());
-  useEffect(function(){var gS=window.getStagioneFromData||function(d){if(!d)return null;var p=d.split('/');if(p.length<3)return null;var mm=parseInt(p[1]),yy=parseInt(p[2]);if(isNaN(mm)||isNaN(yy))return null;var s=mm>=7?yy:yy-1;return s+'/'+(s+1).toString().slice(-2);};if(!team.stagione)return;var cSt=team.stagione,cNm=team.nome||"";var toArc=matches.filter(function(m){return(m.stagione||gS(m.data)||cSt)!==cSt;});if(toArc.length>0){var stamped=toArc.map(function(m){var mc=m.homeColor||(m.squadra===cNm?(team.homeColor||"#7de8a8"):TEAM_DEFAULT.homeColor)||"#7de8a8";return Object.assign({},m,{stagione:m.stagione||gS(m.data)||cSt,homeColor:mc});});setAllMatches(function(prev){return[...prev,...stamped];});setMatches(function(prev){return prev.filter(function(m){return(m.stagione||gS(m.data)||cSt)===cSt;});});}
-  },[]);
   useEffect(function() {
     if (typeof saveData === "function") {
       setSaveStatus("saving");
@@ -891,15 +889,23 @@ function App(props) {
     _subscribeRealtime(function(d) {
       if (!d) return;
       if (d.team) setTeam(d.team);
+      if (d.upcoming) setUpcoming(d.upcoming);
+      if (d.tornei) setTornei(d.tornei);
+      if (d.convocazioni) setConvocazioni(d.convocazioni.map(function(c,i){return c._uid?c:Object.assign({},c,{_uid:"conv_"+i+"_"+(c.data||"").replace(/\//g,"")+"_"+(c.selezione||"").slice(0,4)});}));
+      if (d.giornate) setGiornate(d.giornate);
+      if (d.teamHistory) setTeamHistory(d.teamHistory);
       if (d.matches || d.allMatches) {
         var gS3=window.getStagioneFromData||function(dt){if(!dt)return null;var p=dt.split('/');if(p.length<3)return null;var mm=parseInt(p[1]),yy=parseInt(p[2]);if(isNaN(mm)||isNaN(yy))return null;var s=mm>=7?yy:yy-1;return s+'/'+(s+1).toString().slice(-2);};
         var cSt3=(d.team&&d.team.stagione)||team.stagione||"",cNm3=(d.team&&d.team.nome)||team.nome||"";
         var rawM=(d.matches||[]).map(function(m){return m.squadra?m:Object.assign({},m,{squadra:d.team?d.team.nome:team.nome});});
         var toKeep=rawM.filter(function(m){return!cSt3||(m.stagione||gS3(m.data)||cSt3)===cSt3;});
-        var toArc=rawM.filter(function(m){return cSt3&&(m.stagione||gS3(m.data)||cSt3)!==cSt3;}).map(function(m){var mc=m.homeColor||(m.squadra===cNm3?(d.team&&d.team.homeColor)||"#7de8a8":TEAM_DEFAULT.homeColor)||"#7de8a8";return Object.assign({},m,{stagione:m.stagione||gS3(m.data)||cSt3,homeColor:mc});});
-        var bAll=d.allMatches||[];setMatches(toKeep);
-        if(toArc.length>0){setAllMatches([...bAll,...toArc]);setTimeout(function(){saveData({matches:toKeep,allMatches:[...bAll,...toArc],team:d.team||team,upcoming:d.upcoming||upcoming,convocazioni:d.convocazioni||convocazioni,tornei:d.tornei||tornei,giornate:giornate,teamHistory:teamHistory});},200);}
-        else{setAllMatches(bAll);}
+        var toArc=rawM.filter(function(m){return cSt3&&(m.stagione||gS3(m.data)||cSt3)!==cSt3;}).map(function(m){
+          var mc=m.homeColor||(m.squadra===cNm3?(d.team&&d.team.homeColor)||"#7de8a8":TEAM_DEFAULT.homeColor)||"#7de8a8";
+          return Object.assign({},m,{stagione:m.stagione||gS3(m.data)||cSt3,homeColor:mc});
+        });
+        var bAll=d.allMatches||[];
+        setMatches(toKeep);
+        setAllMatches(toArc.length>0?[...bAll,...toArc]:bAll);
       }
       if (d.upcoming) setUpcoming(d.upcoming);
       if (d.tornei) setTornei(d.tornei);
